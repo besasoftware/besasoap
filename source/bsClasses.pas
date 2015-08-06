@@ -10,7 +10,7 @@ type
     function GetHeader(const HeaderName: string): String;
     procedure SetHeader(const HeaderName, Value: String);
   public
-    function GetHeaderName(const Index: Integer) : String;
+    function GetHeaderName(const Header: string) : String;
     function HeaderIsExist(const HeaderName: string) : Boolean;
     function GetHeaderIndex(const HeaderName: string):Integer;
     property Header[const HeaderName: string]:String read GetHeader write SetHeader;
@@ -66,25 +66,20 @@ var
 begin
   Result := -1;
   for I := 0 to (Count-1) do
-    if (GetHeaderName(I)=HeaderName) then begin
+    if (GetHeaderName(Strings[I])=HeaderName) then begin
       Result := I;
       Exit;
     end;
 end;
 
-function TbsHeaderList.GetHeaderName(const Index: Integer): String;
-var
-  LStr:string;
+function TbsHeaderList.GetHeaderName(const Header: string): String;
 begin
-  Result:='';
-  if Index>Count-1 then Exit;
-  LStr:=Strings[Index];
-  Result:=LStr.Substring(0,LStr.IndexOf(':'));
+  Result:=Header.Substring(0,Header.IndexOf(':'));
 end;
 
 function TbsHeaderList.HeaderIsExist(const HeaderName: string): Boolean;
 begin
-  Result:=GetHeaderIndex(HeaderName)>-1;
+  Result := GetHeaderIndex(HeaderName)>-1;
 end;
 
 function TbsHeaderList.GetHeader(const HeaderName: string): String;
@@ -97,7 +92,7 @@ begin
   for I := 0 to (Count-1) do
   begin
     LStr:=Strings[I];
-    if LStr.Substring(0,LStr.IndexOf(':'))=HeaderName then
+    if GetHeaderName(LStr)=HeaderName then
     begin
       Result := LStr.Substring(LStr.IndexOf(':')+1+1{space});
       Break;
