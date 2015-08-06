@@ -6,8 +6,8 @@ uses
   Generics.Collections, Rtti, Variants, Generics.Defaults;
 
 const
-  SCannotAssignPointerToNullable='Cannot Assign Pointer To Nullable';
-  SNullableTypeHasNoValue='Nullable Type Has No Value';
+  SCannotAssignPointerToNullable = 'Cannot Assign Pointer To Nullable';
+  SNullableTypeHasNoValue        = 'Nullable Type Has No Value';
 
 type
   {$REGION 'Nullable Types'}
@@ -142,20 +142,21 @@ type
   NullableWideChar   = Nullable<WideChar>;
   NullableAnsiString = Nullable<AnsiString>;
   NullableWideString = Nullable<WideString>;
+{$ENDIF}
+
 {$ENDREGION}
 
-/// <exclude />
+
 function TryGetUnderlyingValue(const Value: TValue;
   out underlyingValue: TValue): Boolean;
-/// <exclude />
+
 function TrySetUnderlyingValue(const Value: TValue;
   const underlyingValue: TValue): Boolean;
 implementation
 
-uses TypInfo, StrUtils,SysUtils;
+uses
+  TypInfo, StrUtils, SysUtils;
 
-const
-  CHasValueFlag = '@';
 
 
 function IsNullableType(typeInfo: PTypeInfo): Boolean;
