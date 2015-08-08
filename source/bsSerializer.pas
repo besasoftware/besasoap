@@ -17,14 +17,14 @@ type
     FDefNSAdded:Boolean;
     FContext: TRttiContext;
     FType:PTypeInfo;
-    FForm:TSchemaForm;
+    FElementForm:TSchemaForm;
+    FtargetNamespace : string;
+
     procedure SetNodeNil(ANode:IXMLNode);
     function NodeIsNil(ANode:IXMLNode):Boolean;
     function AddChild(AParentNode:IXMLNode;ANodeName:string;
     AForm:TSchemaForm; ANamespace:string='@';APrefix:string=''):IXMLNode;
   public
-    targetNamespace : string;
-
     constructor Create;
     destructor Destroy;override;
     class function StringToNative(AParamValue, AParamType: String): TValue;
@@ -36,8 +36,8 @@ type
     procedure Serialize(Stream:TStream;Obj:TValue); override;
     procedure Deserialize(Stream:TStream;var Obj: TValue); override;
     procedure SetType(AType:PTypeInfo);
-    property Form:TSchemaForm read FForm write FForm;
-
+    property ElementForm:TSchemaForm read FElementForm write FElementForm;
+    property targetNamespace : string read FtargetNamespace write FtargetNamespace;
   end;
 
 implementation
@@ -256,7 +256,7 @@ var
 begin
   aType := FContext.GetType(aObj.TypeInfo);
 
-  AForm:=FForm;//sfUnqualified;
+  AForm:=FElementForm;//sfUnqualified;
 
   NodeName := aType.Name;
   NamespaceURI:=targetNamespace;
@@ -525,7 +525,7 @@ end;
 constructor TbsXMLSerializer.Create;
 begin
   FContext:= TRttiContext.Create;
-  Form:=sfUnqualified;
+  FElementForm:=sfUnqualified;
 end;
 
 procedure TbsXMLSerializer.DeSerializeWithNode(ANodeName: String; var aObj: TValue;
