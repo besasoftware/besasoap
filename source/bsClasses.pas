@@ -16,6 +16,38 @@ type
     property Header[const HeaderName: string]:String read GetHeader write SetHeader;
   end;
 
+  ///  <summary>
+  ///  Structure used to parse an URI into its components
+  /// </summary>
+  TbsURI = record
+    /// <summary>
+    ///Specifies protocol; http, https...
+    /// </summary>
+    Protocol : String;
+    User : String;
+    Pass : String;
+    Params:String;
+    Https: boolean;
+    /// <summary>
+    /// The server name. e.g. 'www.somewebsite.com'
+    /// </summary>
+    Server: String;
+    /// <summary>
+    /// The server port.
+    /// </summary>
+    Port: String;
+    ///  <summary>
+    /// Specifies the resource address.
+    ///  </summary>
+    ///  <example>
+    ///  '/category/name/10?param=1'
+    ///  </example>
+    Address: String;
+    ///  <summary>
+    /// Fill the members from a supplied URI
+    ///  </summary>
+    function From(aURI: String): boolean;
+  end;
 
 type
   TbsDateTimeFormat=(dfDateTime,dfDate,dfTime);
@@ -899,6 +931,123 @@ begin
   finally
     iso.Free;
   end;
+
+end;
+
+{ TURI }
+
+{==============================================================================}
+// based synapse/synautil.pas
+
+function ParseURL(URL: string; var Prot, User, Pass, Host, Port, Path,
+  Para: string): string;
+var
+  x, y: Integer;
+  sURL: string;
+  s: string;
+  s1, s2: string;
+
+begin
+  Prot := 'http';
+  User := '';
+  Pass := '';
+  Port := '80';
+  Para := '';
+
+
+  x := URL.IndexOf('://');
+  if x > -1 then
+  begin
+    Prot := URL.Substring(0,x);
+    sURL := URL.Substring(x+3);
+  end
+  else
+    sURL := URL;
+  if SameText(Prot,'https') then
+    Port := '443';
+  if SameText(Prot,'ftp') then
+    Port := '21';
+
+  x := sURL.IndexOf('@');
+  y := sURL.IndexOf('/');
+  if (x > -1) and ((x < y) or (y < 1)) then
+  begin
+    s := sURL.Substring(0,x);
+    sURL := sURL.Substring(x+1);
+    x := s.IndexOf(':');
+    if x > -1 then
+    begin
+      User := s.Substring(0,x);
+      Pass := s.Substring(x+1);
+    end
+    else
+      User := s;
+  end;
+
+  x := sURL.IndexOf('/');
+  if x > -1 then
+  begin
+    s1 := sURL.Substring(0,x);
+    s2 := sURL.Substring(x+1);
+  end
+  else
+  begin
+    s1 := sURL;
+    s2 := '';
+  end;
+
+  if s1.IndexOf('[') = 0 then
+  begin
+    Host := s1.Substring(0,s1.IndexOf(']'));
+    Host:=Host.Remove(0,1);
+    s1 := s1.Substring(s1.IndexOf(']')+1);
+
+    if s1.IndexOf(':') = 0 then
+      Port := s1.Substring(s1.IndexOf(':')+1);
+  end
+  else
+  begin
+    x := s1.IndexOf(':');
+    if x > -1 then
+    begin
+      Host := s1.Substring(0,x);
+      Port := s1.Substring(x+1);
+    end
+    else
+      Host := s1;
+  end;
+  Result := '/' + s2;
+
+  x := s2.IndexOf('?');
+  if x > -1 then
+  begin
+    Path := '/' + s2.Substring(0,x);
+    Para := s2.Substring(x+1);
+  end
+  else
+    Path := '/' + s2;
+  if Host = '' then
+    Host := 'localhost';
+
+end;
+
+
+function TbsURI.From(aURI: String): boolean;
+begin
+  Https := false;
+  Finalize(self);
+  result := false;
+  aURI := Trim(aURI);
+  if aURI='' then
+    exit;
+
+  ParseURL(aURI,Protocol,User,Pass,Server,Port,Address,Params);
+
+  if Length(Params)>0 then
+    Address:=Address+'?'+Params;
+
+  Https:=SameText(Protocol,'https');
+  Result:=True;
 
 end;
 
