@@ -12,6 +12,7 @@ const
   SUserAgent= 'User-Agent';                              { Do not localize }
   SConnection='Connection';
   SKeepAlive='Keep-Alive';
+  SAgent='Besa Soap';
 
   SXMLNS = 'xmlns';
   SHttp = 'http:/';
