@@ -42,10 +42,11 @@ implementation
 
 procedure TbsIndyTransporter.Init;
 var
-  URI: TURI;
+  URI: TbsURI;
   FIdSSLIOHandlerSocketOpenSSL: TIdSSLIOHandlerSocketOpenSSL;
   //FIdSocksInfo: TIdSocksInfo;
   I: Integer;
+  LHeader:string;
 begin
   if not URI.From(TargetURL) then Exit;
   FIdHttp:= TIdHTTP.Create(nil);
@@ -93,8 +94,10 @@ begin
 
   FIdHttp.Request.CustomHeaders.Clear;
 
-  for I := 0 to Headers.Count-1 do begin
-    FIdHttp.Request.CustomHeaders.AddValue(Headers.GetHeaderName(I),Headers.Header[ Headers.GetHeaderName(I) ]);
+  for I := 0 to Headers.Count-1 do
+  begin
+    LHeader:=Headers[I];
+    FIdHttp.Request.CustomHeaders.AddValue(Headers.GetHeaderName(LHeader),Headers.Header[ Headers.GetHeaderName(LHeader) ]);
   end;
 
   { Proxy support configuration }
@@ -126,7 +129,7 @@ end;
 
 function TbsIndyTransporter.Execute(Request:TStream): TStream;
 var
-  URI: TURI;
+  URI: TbsURI;
 begin
   if not URI.From(TargetURL) then Exit;
  //IndyProxyAuthorization
