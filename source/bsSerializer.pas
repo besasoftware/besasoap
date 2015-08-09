@@ -19,11 +19,12 @@ type
     FType:PTypeInfo;
     FElementForm:TSchemaForm;
     FtargetNamespace : string;
-
+    FAddXSINameSpace:Boolean;
     procedure SetNodeNil(ANode:IXMLNode);
     function NodeIsNil(ANode:IXMLNode):Boolean;
     function AddChild(AParentNode:IXMLNode;ANodeName:string;
     AForm:TSchemaForm; ANamespace:string='@';APrefix:string=''):IXMLNode;
+    function FindElementNode(AParent:IXMLNode;ALocalName:String):IXMLNode;
   public
     constructor Create;
     destructor Destroy;override;
@@ -33,16 +34,18 @@ type
     procedure DeSerializeWithNode(ANodeName: String; var aObj: TValue; ParentNode: IXMLNode);
     procedure SerializeToStream(Stream:TStream;Obj:TValue);
     function SerializeToString(Obj:TValue):string;
+    function DeserializeFromString(AValue: string): TValue;
     procedure Serialize(Stream:TStream;Obj:TValue); override;
     procedure Deserialize(Stream:TStream;var Obj: TValue); override;
     procedure SetType(AType:PTypeInfo);
     property ElementForm:TSchemaForm read FElementForm write FElementForm;
     property targetNamespace : string read FtargetNamespace write FtargetNamespace;
+    property AddXSINameSpace:Boolean read FAddXSINameSpace write FAddXSINameSpace;
   end;
 
 implementation
 
-uses Types, bsUtil, bsClasses;
+uses Types, bsUtil, bsClasses,Variants;
 
 
 function String2DateTime(AValue: String): TDateTime;
@@ -98,7 +101,7 @@ begin
        (AParamType = 'longint') then
        Result := StrToIntDef(AParamValue, 0)
     else if (AParamType = 'int64') or (AParamType = 'longword') or
-    (AParamType = 'nativeint') or (AParamType = 'nativeuint') then
+    (AParamType = 'nativeint') or (AParamType = 'nativeuint') or (AParamType = 'uint64') then
        Result := StrToInt64Def(AParamValue, 0)
     else if (AParamType = 'ansistring') then begin
             Result := AParamValue
@@ -111,7 +114,7 @@ begin
     else if (AParamType = 'boolean') or (AParamType = 'wordbool') or (AParamType = 'longbool') then
       Result := (AParamValue = DEFAULT_TRUE) or (AParamValue = DEFAULT_TRUE_STR)
     else if (AParamType = 'single') or (AParamType = 'double') or (AParamType = 'float') or
-      (AParamType = 'currency') or (AParamType = 'extended') then
+      (AParamType = 'currency') or (AParamType = 'extended') or (AParamType = 'real') or (AParamType = 'comp') then
       Result := StrToFloatDef( StringReplace(AParamValue, DEFAULT_DECIMALSEPARATOR,
     DecimalSeparator, [rfReplaceAll]) , 0)
     else if (AParamType = 'long') then
@@ -157,6 +160,20 @@ begin
   inherited;
 end;
 
+function TbsXMLSerializer.FindElementNode(AParent: IXMLNode;
+  ALocalName: String): IXMLNode;
+var
+  I: Integer;
+begin
+  Result:=NIL;
+  for I := 0 to AParent.ChildNodes.Count-1 do
+  if AParent.ChildNodes[I].LocalName=ALocalName then
+  begin
+    Result:=AParent.ChildNodes[I];
+    Break;
+  end;
+end;
+
 class function TbsXMLSerializer.NativeToString(AParamValue: TValue; AParamType: String): String;
 begin
   AParamType := LowerCase(Trim(AParamType));
@@ -181,8 +198,9 @@ end;
 
 function TbsXMLSerializer.NodeIsNil(ANode: IXMLNode): Boolean;
 begin
-  // ToDo:...
   Result:=False;
+  if ANode=nil then Exit;
+  Result:=VarToStr(ANode.GetAttributeNS('nil',XMLSchemaInstNameSpace))='true';
 end;
 
 procedure TbsXMLSerializer.Serialize(Stream: TStream; Obj: TValue);
@@ -220,9 +238,18 @@ begin
   FreeAndNil(AStream);
 end;
 
+function TbsXMLSerializer.DeserializeFromString(AValue: string): TValue;
+var
+  LStream: TStringStream;
+begin
+  LStream:=TStringStream.Create(AValue);
+  Deserialize(LStream,Result);
+  LStream.Free;
+end;
+
 procedure TbsXMLSerializer.SetNodeNil(ANode: IXMLNode);
 begin
-//todo:...
+  ANode.SetAttributeNS('nil',XMLSchemaInstNameSpace,'true');
 end;
 
 procedure TbsXMLSerializer.SetType(AType: PTypeInfo);
@@ -493,6 +520,9 @@ begin
   then
     begin
       Result:=AParentNode.AddChild(ANodeName,targetNamespace,True);
+      if FAddXSINameSpace then
+      Result.DeclareNamespace(SXMLSchemaInstNameSpace99Pre, XMLSchemaInstNameSpace);
+
       FDefNSAdded:=True;
     end
   else if (AForm=sfQualified)
@@ -526,6 +556,7 @@ constructor TbsXMLSerializer.Create;
 begin
   FContext:= TRttiContext.Create;
   FElementForm:=sfUnqualified;
+  FAddXSINameSpace:=True;
 end;
 
 procedure TbsXMLSerializer.DeSerializeWithNode(ANodeName: String; var aObj: TValue;
@@ -567,7 +598,7 @@ var
         Result:= StringToNative(NativeNode.NodeValue,NativeType.Name);
       end
       else if NativeNodeType = ntAttribute then begin
-        NativeChildNode := NativeNode.AttributeNodes.FindNode(NativeNodeName);
+        NativeChildNode :=  NativeNode.AttributeNodes.FindNode(NativeNodeName);
         //if aNode.IsNil then aValue:=nil;
         //aValue:= NativeChildNode.NodeValue;
         Result:= StringToNative(NativeChildNode.NodeValue,NativeType.Name);
@@ -717,7 +748,7 @@ begin
 
           if NodeType = ntElement then
           begin
-            aNode := pNode.ChildNodes.FindNode(NodeName);
+            aNode := FindElementNode(pNode,NodeName);
             if aNode=nil then aValue:=nil
             else begin
               aValue:= StringToNative(aNode.NodeValue,aField.FieldType.Name);
@@ -749,7 +780,7 @@ begin
 
           TbsAttributeUtils.GetXMLElementAttribute(aContext,aField,NodeName,Form,NamespaceURI);
 
-          aNode := pNode.ChildNodes.FindNode(NodeName);
+          aNode := FindElementNode(pNode,NodeName);
           if aNode=nil then
             aValue:=nil
           else if NodeIsNil(aNode) then
@@ -782,7 +813,7 @@ begin
             TbsAttributeUtils.GetXMLArrayItemAttribute(aContext,aField,NodeName);
           end;
 
-          aNode := pNode.ChildNodes.FindNode(NodeName);
+          aNode := FindElementNode( pNode,NodeName);
           if aNode=nil then Continue;
           aValue:=XML2ObjDynArray(aNode, aField.FieldType,AsElement);
         end;
@@ -801,7 +832,7 @@ begin
 
           if (NodeType = ntElement) then
           begin
-            aNode := pNode.ChildNodes.FindNode(NodeName);
+            aNode := FindElementNode(pNode,NodeName);
             if   NodeIsNil( aNode) then aValue:=nil
             else
             TrySetUnderlyingValue(aValue, StringToNative(aNode.NodeValue,aRecord.GetField('fValue').FieldType.Name));
