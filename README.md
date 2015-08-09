@@ -42,10 +42,10 @@ begin
 end;
 ```
 ###Serialization & Deserialization
-You can serialize your object.
+
+With bsXMLSerializer you can serialize & deserialize your object.
 
 ```pascal
-type
 type
   ArrayOfString=array of String;
 
@@ -90,7 +90,9 @@ type
    ArrayString_: array of string;
    ArrayOfString_:ArrayOfString;
 end;
-
+```
+####Serialization
+```pascal
 procedure TForm1.bSerializeClick(Sender: TObject);
 var
   serializer : TbsXMLSerializer;
@@ -192,7 +194,22 @@ Generated xml:
 	</ArrayOfString_>
 </NS1:native_test>
 ```
-
+####Deserialization
+```pascal
+var
+  serializer : TbsXMLSerializer;
+  clazz: TNativeTest;
+  xml:string;
+begin
+  serializer:=TbsXMLSerializer.Create;
+  serializer.SetType(TypeInfo(TNativeTest));
+  clazz:=serializer.DeserializeFromString(Memo1.Lines.Text).AsType<TNativeTest>;
+  Memo1.Lines.Append('clazz.NlbString:'+ clazz.NlbString);
+  Memo1.Lines.Append('clazz.NullString.HasValue:'+ BoolToStr(clazz.NullString.HasValue,true));
+  clazz.Free;
+  serializer.Free;
+end;
+```
 ###SOAP 
 Sample usage for soap sample. You can find full project in demos folder.
 
