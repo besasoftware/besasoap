@@ -46,54 +46,151 @@ You can serialize your object.
 
 ```pascal
 type
-TNativeTest=class
+type
+  ArrayOfString=array of String;
+
+  [XmlRootAttribute('native_test','http://www.besasoftware.com')]
+  TNativeTest=class
+   [XmlElementAttribute('ShortInt')]
    ShortInt_:ShortInt;
-   DateTime:TDateTime;
-   Str2:NullableString;
+   [XmlAttributeAttribute('SmallInt')]
+   SmallInt_:SmallInt;
+   LongInt_:LongInt;
+   Integer_:Integer;
+   Int64_:Int64;
+   Byte_:Byte;
+   Word_:Word;
+   LongWord_:LongWord;
+   Cardinal_:Cardinal;
+   UInt64_:UInt64;
+   //
+   Single_:Single;
+   Double_:Double;
+   Real_:Real;
+   Extended_:Extended;
+   Comp_:Comp;
+   Currency_:Currency;
+   //
+   Char_ : Char;
+   WideChar_ : WideChar;
+   AnsiChar_ : AnsiChar;
+   ShortString_ : ShortString;
+   String_ : String;
+   //
+   Date_:TDate;
+   Time_:TTime;
+   TDateTime_:TDateTime;
+   //
+   NlbString:NullableString;
+   NullString:NullableString;
+   NlbInteger:NullableInteger;
+   NullInteger:NullableInteger;
+   //
+   [XmlArrayAttribute('ArrayString')]
    ArrayString_: array of string;
+   ArrayOfString_:ArrayOfString;
 end;
 
-procedure TForm1.bSerialize(Sender: TObject);
+procedure TForm1.bSerializeClick(Sender: TObject);
 var
-  xmldoc: IXMLDocument;
   serializer : TbsXMLSerializer;
   clazz: TNativeTest;
   xml:string;
 begin
-  xmldoc:=TXMLDocument.Create(NIL);
-  xmldoc.Active:=TRUE;
   serializer:=TbsXMLSerializer.Create;
-
   clazz:=TNativeTest.Create;
 
    clazz.ShortInt_:=1;
-   clazz.DateTime:=Now;
-   clazz.Str2:='NullableStr';
+   clazz.SmallInt_:=2;
+   clazz.LongInt_:=3;
+   clazz.Integer_:=4;
+   clazz.Int64_:=5;
+   clazz.Byte_:=6;
+   clazz.Word_:=7;
+   clazz.LongWord_:=8;
+   clazz.Cardinal_:=9;
+   clazz.UInt64_:=10;
+
+   clazz.Single_:=1.0001;
+   clazz.Double_:=1.0002;
+   clazz.Real_:=1.0003;
+   clazz.Extended_:=1.0004;
+   clazz.Comp_:=1.05;
+   clazz.Currency_:=1.0006;
+   //
+   clazz.Char_ :='A';
+   clazz.WideChar_ :='B';
+   clazz.AnsiChar_ :='C';
+   clazz.ShortString_ :='ABCD';
+   clazz.String_ :='defgh';
+   //
+   clazz.Date_:=Date;
+   clazz.Time_:=Time;
+   clazz.TDateTime_:=Now;
+   //
+   clazz.NlbString:='NullableString';
+   clazz.NullString:=nil;
+   clazz.NlbInteger:=2015;
+   clazz.NullInteger:=nil;
+   //
 
    SetLength(clazz.ArrayString_,3);
    clazz.ArrayString_[0]:='One';
    clazz.ArrayString_[1]:='Two';
    clazz.ArrayString_[2]:='Three';
+   SetLength(clazz.ArrayOfString_,3);
+   clazz.ArrayOfString_[0]:='OneOf';
+   clazz.ArrayOfString_[1]:='TwoOf';
+   clazz.ArrayOfString_[2]:='ThreeOf';
 
-  xmldoc.AddChild('Test');
+
   xml:=serializer.SerializeToString(clazz);
+  Memo1.Lines.Text:=xml;
   clazz.Free;
   serializer.Free;
-  xmldoc:=NIL;
 end;
 ```
 Generated xml:
 ```xml
-<NS1:TNativeTest>
-	<ShortInt_>1</ShortInt_>
-	<DateTime>2015-08-08T22:34:34.676Z</DateTime>
-	<Str2>NullableStr</Str2>
-	<ArrayString_>
+<NS1:native_test xmlns:NS1="http://www.besasoftware.com" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" SmallInt="2">
+	<ShortInt>1</ShortInt>
+	<LongInt_>3</LongInt_>
+	<Integer_>4</Integer_>
+	<Int64_>5</Int64_>
+	<Byte_>6</Byte_>
+	<Word_>7</Word_>
+	<LongWord_>8</LongWord_>
+	<Cardinal_>9</Cardinal_>
+	<UInt64_>10</UInt64_>
+	<Single_>1.00010001659393</Single_>
+	<Double_>1.0002</Double_>
+	<Real_>1.0003</Real_>
+	<Extended_>1.0004</Extended_>
+	<Comp_>1</Comp_>
+	<Currency_>1.0006</Currency_>
+	<Char_>A</Char_>
+	<WideChar_>B</WideChar_>
+	<AnsiChar_>C</AnsiChar_>
+	<ShortString_>ABCD</ShortString_>
+	<String_>defgh</String_>
+	<Date_>2015-08-09T00:00:00Z</Date_>
+	<Time_>1899-12-30T10:21:29.58Z</Time_>
+	<TDateTime_>2015-08-09T10:21:29.58Z</TDateTime_>
+	<NlbString>NullableString</NlbString>
+	<NullString xsi:nil="true"/>
+	<NlbInteger>2015</NlbInteger>
+	<NullInteger xsi:nil="true"/>
+	<ArrayString>
 		<item>One</item>
 		<item>Two</item>
 		<item>Three</item>
-	</ArrayString_>
-</NS1:TNativeTest>
+	</ArrayString>
+	<ArrayOfString_>
+		<item>OneOf</item>
+		<item>TwoOf</item>
+		<item>ThreeOf</item>
+	</ArrayOfString_>
+</NS1:native_test>
 ```
 
 ###SOAP 
