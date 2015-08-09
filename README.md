@@ -229,8 +229,7 @@ BesaSoap, supports basic authentication and UsernameToken authentication.
 
 For importing wsdl you need the BesaSoap Importer Tool. You can download trial from  http://www.besasoftware.com
 
-For Demo Generated Unit:
-WSDL address: http://www.webservicex.net/CurrencyConvertor.asmx?WSDL
+For Demo Generated Unit(http://www.webservicex.net/CurrencyConvertor.asmx?WSDL):
 ```pascal
 // ************************************************************************ //
 // Generated with BesaSoap WSDL Importer - http://www.besasoftware.com
