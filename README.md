@@ -210,12 +210,16 @@ begin
   serializer.Free;
 end;
 ```
+ 
 ###SOAP 
-Sample usage for soap sample. You can find full project in demos folder.
+####Auhentication Types
+BesaSoap, supports basic authentication and UsernameToken authentication. 
 
-For importing wsdl you need *buy* the BesaSoap Tool from  http://www.besasoftware.com
+####Generate WSDL proxy code
 
-Generated Unit
+For importing wsdl you need the BesaSoap Importer Tool. You can download trial from  http://www.besasoftware.com
+
+Sample Generated Unit
 ```pascal
 // ************************************************************************ //
 // Generated with BesaSoap WSDL Importer - http://www.besasoftware.com
