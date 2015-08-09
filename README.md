@@ -214,17 +214,12 @@ end;
 
 Attribute Name | Description 
 ------------ | -------------
-Content from cell 1 | Content from cell 2
-Content in the first column | Content in the second column
-
-Id | Attribute | Description
--- | --------- | -----------
-1 | XmlElementAttribute | Indicates that a public field or property represents an XML element when the serializer serializes or deserializes the object that contains it. In contrast if an XmlElementAttribute is not applied to such a field or property, the items in the array are encoded as a sequence of elements, nested under an element named after the field or property.
-2 | XmlAttributeAttribute | Specifies that the serializer must serialize the class member as an XML,attribute.
-3 | XmlTextAttribute | Indicates to the Serializer that the member must be treated as,XML,text when the class that contains it is serialized or deserialized.
-4 | XmlArrayAttribute | Specifies that the serializer must serialize a particular class member,as an array of XML elements.
-5 | XmlArrayItemAttribute | Represents an attribute that specifies the derived types that the Serializer can place in a serialized array.
-6 | XmlHolderAttribute | Specifies that the serializer must serialize the class as a Holder class. |
+XmlElementAttribute | Indicates that a public field or property represents an XML element when the serializer serializes or deserializes the object that contains it. In contrast if an XmlElementAttribute is not applied to such a field or property, the items in the array are encoded as a sequence of elements, nested under an element named after the field or property.
+XmlAttributeAttribute | Specifies that the serializer must serialize the class member as an XML,attribute.
+XmlTextAttribute | Indicates to the Serializer that the member must be treated as,XML,text when the class that contains it is serialized or deserialized.
+XmlArrayAttribute | Specifies that the serializer must serialize a particular class member,as an array of XML elements.
+XmlArrayItemAttribute | Represents an attribute that specifies the derived types that the Serializer can place in a serialized array.
+XmlHolderAttribute | Specifies that the serializer must serialize the class as a Holder class. |
  
 ###SOAP 
 ####Auhentication Types
