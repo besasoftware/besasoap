@@ -212,8 +212,13 @@ end;
 ```
 ###Attribute Types
 
+First Header | Second Header
+------------ | -------------
+Content from cell 1 | Content from cell 2
+Content in the first column | Content in the second column
+
 Id|Attribute|Description
--|---------|-----------
+--|---------|-----------
 1|XmlElementAttribute|Indicates that a public field or property represents an XML element when the serializer serializes or deserializes the object that contains it. In contrast if an XmlElementAttribute is not applied to such a field or property, the items in the array are encoded as a sequence of elements, nested under an element named after the field or property.
 2|XmlAttributeAttribute|Specifies that the serializer must serialize the class member as an XML,attribute.
 3|XmlTextAttribute|Indicates to the Serializer that the member must be treated as,XML,text when the class that contains it is serialized or deserialized.
