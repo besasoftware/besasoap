@@ -228,7 +228,7 @@ begin
   LRespDoc.Active:=true;
   LConverter:=TbsXMLSerializer.Create;
   LConverter.ElementForm:=FService.ElementForm;
-  LConverter.AddXSINameSpace:=False;
+  LConverter.Standalone:=False;
 
   LEnvelop:=LReqDoc.AddChild(SSoapNameSpacePre + ':' + SSoapEnvelope, SoapEnvelopeNamespaces[oUseSOAP12 in FService.Options]);
   LEnvelop.DeclareNamespace(SXMLSchemaNameSpacePre, XMLSchemaNameSpace);
