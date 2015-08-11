@@ -19,7 +19,7 @@ type
     FType:PTypeInfo;
     FElementForm:TSchemaForm;
     FtargetNamespace : string;
-    FAddXSINameSpace:Boolean;
+    FStandalone:Boolean;
     procedure SetNodeNil(ANode:IXMLNode);
     function NodeIsNil(ANode:IXMLNode):Boolean;
     function AddChild(AParentNode:IXMLNode;ANodeName:string;
@@ -28,8 +28,8 @@ type
   public
     constructor Create;
     destructor Destroy;override;
-    class function StringToNative(AParamValue, AParamType: String): TValue;
-    class function NativeToString(AParamValue:TValue; AParamType: String): String;
+    class function StringToNative(AType:TRttiType; AValue:string): TValue;
+    class function NativeToString(AType:TRttiType; AValue:TValue): String;
     procedure SerializeWithNode(ANodeName: String; aObj: TValue; ParentNode: IXMLNode);
     procedure DeSerializeWithNode(ANodeName: String; var aObj: TValue; ParentNode: IXMLNode);
     procedure SerializeToStream(Stream:TStream;Obj:TValue);
@@ -40,7 +40,7 @@ type
     procedure SetType(AType:PTypeInfo);
     property ElementForm:TSchemaForm read FElementForm write FElementForm;
     property targetNamespace : string read FtargetNamespace write FtargetNamespace;
-    property AddXSINameSpace:Boolean read FAddXSINameSpace write FAddXSINameSpace;
+    property Standalone:Boolean read FStandalone write FStandalone;
   end;
 
 implementation
@@ -87,52 +87,51 @@ begin
   {$ENDIF}  // CONDITIONALEXPRESSIONS
 end; { DecimalSeparator }
 
-class function TbsXMLSerializer.StringToNative(AParamValue,AParamType:String) : TValue;
+class function TbsXMLSerializer.StringToNative(AType:TRttiType;AValue:string) : TValue;
 var
-  AnDateTime :TDateTime;
-  Sin_:Single;
-  Ex_:Extended;
+  ADateTime :TDateTime;
 begin
 
-  AParamType := LowerCase(Trim(AParamType));
-    if (AParamType = 'integer') or (AParamType = 'word') or
-       (AParamType = 'shortint') or (AParamType = 'byte')or
-       (AParamType = 'cardinal')  or (AParamType = 'smallint') or
-       (AParamType = 'longint') then
-       Result := StrToIntDef(AParamValue, 0)
-    else if (AParamType = 'int64') or (AParamType = 'longword') or
-    (AParamType = 'nativeint') or (AParamType = 'nativeuint') or (AParamType = 'uint64') then
-       Result := StrToInt64Def(AParamValue, 0)
-    else if (AParamType = 'ansistring') then begin
-            Result := AParamValue
-    end
-    else if (AParamType = 'widestring') then begin
-            Result := AParamValue
-    end
-    else if (AParamType = 'string') then
-      Result := AParamValue
-    else if (AParamType = 'boolean') or (AParamType = 'wordbool') or (AParamType = 'longbool') then
-      Result := (AParamValue = DEFAULT_TRUE) or (AParamValue = DEFAULT_TRUE_STR)
-    else if (AParamType = 'single') or (AParamType = 'double') or (AParamType = 'float') or
-      (AParamType = 'currency') or (AParamType = 'extended') or (AParamType = 'real') or (AParamType = 'comp') then
-      Result := StrToFloatDef( StringReplace(AParamValue, DEFAULT_DECIMALSEPARATOR,
-    DecimalSeparator, [rfReplaceAll]) , 0)
-    else if (AParamType = 'long') then
-      Result := StrToIntDef(AParamValue, 0)
-    else if (AParamType = 'datetime') or (AParamType = 'tdatetime') or   (AParamType = 'tdate') or (AParamType = 'ttime') then begin
-      ISO8601DateToDelphiDateTime(AParamValue,AnDateTime);
-      Result := AnDateTime;
-    end
-    else if (AParamType = 'ttime') then begin
-      if SameText(Copy(AParamValue,1,1),'T') then
-        ISO8601DateToDelphiDateTime(AParamValue,AnDateTime)
-      else
-        ISO8601DateToDelphiDateTime('T'+AParamValue,AnDateTime);
-      Result := AnDateTime;
-    end
-    else if (AParamType = 'char') or (AParamType = 'ansichar') or (AParamType = 'widechar')then
-      Result := AParamValue[1]
-    else Result:= AParamValue;
+  case AType.TypeKind of
+    tkInteger: Result := StrToIntDef(AValue, 0);
+    tkChar: if(AValue.Length>0) then Result:=AValue.Chars[0];
+    tkEnumeration:
+      begin
+        if AType.Handle=TypeInfo(Boolean)then
+        begin
+          Result:=SameText(AValue,'true');
+        end;
+      end;
+    tkFloat:
+      begin
+        if AType.Handle=TypeInfo(TDate)then
+        begin
+          ISO8601DateToDelphiDateTime(AValue,ADateTime);
+          Result:=TDate(ADateTime);
+        end
+        else if AType.Handle=TypeInfo(TTime)then
+        begin
+          ISO8601DateToDelphiDateTime(AValue,ADateTime);
+          Result:=TTime(ADateTime);
+        end
+        else if AType.Handle=TypeInfo(TDateTime)then
+        begin
+          ISO8601DateToDelphiDateTime(AValue,ADateTime);
+          Result:=ADateTime;
+        end
+        else
+          Result:=StrToFloatDef( StringReplace(AValue, DEFAULT_DECIMALSEPARATOR, DecimalSeparator, [rfReplaceAll]) , 0) ;
+      end;
+    tkString: Result:=AValue;
+    tkWChar: if(AValue.Length>0) then Result:=WideChar(AValue.Chars[0]);
+    tkLString: Result:=AValue;
+    tkWString: Result:=WideString(AValue);
+    tkInt64: Result := StrToInt64Def(AValue, 0);
+    tkUString: Result:=UnicodeString(AValue);
+    else
+      Result:=AValue;
+  end;
+
 end;
 
 procedure TbsXMLSerializer.Deserialize(Stream:TStream;var Obj: TValue);
@@ -174,25 +173,33 @@ begin
   end;
 end;
 
-class function TbsXMLSerializer.NativeToString(AParamValue: TValue; AParamType: String): String;
+class function TbsXMLSerializer.NativeToString(AType:TRttiType; AValue:TValue): String;
+var
+  ADateTime :TDateTime;
 begin
-  AParamType := LowerCase(Trim(AParamType));
-  if  AParamType='tdatetime' then
-    Result:=  DelphiDateTimeToISO8601Date( AParamValue.AsType<TDateTime>, TbsDateTimeFormat.dfDateTime)
-  else if  AParamType='tdate' then
-    Result:=  DelphiDateTimeToISO8601Date( AParamValue.AsType<TDateTime>, TbsDateTimeFormat.dfDate)
-  else if  AParamType='ttime' then
-    Result:=  DelphiDateTimeToISO8601Date( AParamValue.AsType<TDateTime>, TbsDateTimeFormat.dfTime)
-  else if AParamType='boolean' then
-    Result := LowerCase(AParamValue.ToString)
-  else if (AParamType = 'single') or (AParamType = 'double') or (AParamType = 'float') or
-      (AParamType = 'real') or (AParamType = 'currency') or
-      (AParamType = 'extended')  then
-  begin
-    Result := StringReplace(FloatToStr(AParamValue.AsExtended), DecimalSeparator, DEFAULT_DECIMALSEPARATOR, [rfReplaceAll])
-  end
-  else
-    Result:= AParamValue.ToString;
+
+  case AType.TypeKind of
+    tkEnumeration:
+      begin
+        if AType.Handle=TypeInfo(Boolean)then
+        begin
+          Result:=LowerCase(BoolToStr(AValue.AsBoolean,True));
+        end;
+      end;
+    tkFloat:
+      begin
+        if AType.Handle=TypeInfo(TDate)then
+          Result:=DelphiDateTimeToISO8601Date( AValue.AsType<TDateTime>, TbsDateTimeFormat.dfDate)
+        else if AType.Handle=TypeInfo(TTime)then
+          Result:=DelphiDateTimeToISO8601Date( AValue.AsType<TDateTime>, TbsDateTimeFormat.dfTime)
+        else if AType.Handle=TypeInfo(TDateTime)then
+          Result:=DelphiDateTimeToISO8601Date( AValue.AsType<TDateTime>, TbsDateTimeFormat.dfDateTime)
+        else
+          Result:=StringReplace(AValue.ToString, DecimalSeparator, DEFAULT_DECIMALSEPARATOR, [rfReplaceAll])
+      end;
+    else
+      Result:=AValue.ToString;
+  end;
 
 end;
 
@@ -338,12 +345,12 @@ begin
 
     aValue := ReadNullableRecord(aObj);
     aRecord:= aType.AsRecord;
-    pNode.NodeValue :=  NativeToString(aValue,aRecord.GetField('fValue').FieldType.Name);
+    pNode.NodeValue :=  NativeToString(aRecord.GetField('fValue').FieldType,aValue);
     Exit;
   end else if aType.TypeKind in [tkInteger, tkInt64, tkChar, tkEnumeration, tkFloat, tkString, tkWChar,
         tkLString, tkWString, tkVariant, tkUString, tkSet] then begin
     pNode:=AddChild(ParentNode,NodeName,AForm);
-    pNode.NodeValue:= NativeToString(aObj,aType.Name);
+    pNode.NodeValue:= NativeToString(aType,aObj);
     Exit;
   end
   else
@@ -384,7 +391,7 @@ begin
               NodeType := ntText;
 
 
-          aNodeValue:= NativeToString(aField.GetValue(aObj.AsObject),aField.FieldType.Name);
+          aNodeValue:= NativeToString(aField.FieldType,aField.GetValue(aObj.AsObject));
 
           if NodeType = ntElement then
           begin
@@ -470,7 +477,7 @@ begin
 
           aValue := ReadNullableRecord(aField.GetValue(aObj.AsObject));
           aRecord:= aField.FieldType.AsRecord;
-          aNodeValue := NativeToString(aValue,aRecord.GetField('fValue').FieldType.Name);
+          aNodeValue := NativeToString(aRecord.GetField('fValue').FieldType,aValue);
 
           if (NodeType = ntElement) then
           begin
@@ -520,7 +527,7 @@ begin
   then
     begin
       Result:=AParentNode.AddChild(ANodeName,targetNamespace,True);
-      if FAddXSINameSpace then
+      if FStandalone then
       Result.DeclareNamespace(SXMLSchemaInstNameSpace99Pre, XMLSchemaInstNameSpace);
 
       FDefNSAdded:=True;
@@ -556,7 +563,7 @@ constructor TbsXMLSerializer.Create;
 begin
   FContext:= TRttiContext.Create;
   FElementForm:=sfUnqualified;
-  FAddXSINameSpace:=True;
+  FStandalone:=True;
 end;
 
 procedure TbsXMLSerializer.DeSerializeWithNode(ANodeName: String; var aObj: TValue;
@@ -595,18 +602,18 @@ var
 
       if NativeNodeType = ntElement then begin
         if NodeIsNil(NativeNode) then aValue:=nil;
-        Result:= StringToNative(NativeNode.NodeValue,NativeType.Name);
+        Result:= StringToNative(NativeType,NativeNode.NodeValue);
       end
       else if NativeNodeType = ntAttribute then begin
         NativeChildNode :=  NativeNode.AttributeNodes.FindNode(NativeNodeName);
         //if aNode.IsNil then aValue:=nil;
         //aValue:= NativeChildNode.NodeValue;
-        Result:= StringToNative(NativeChildNode.NodeValue,NativeType.Name);
+        Result:= StringToNative(NativeType,NativeChildNode.NodeValue);
       end
       else if NativeNodeType = ntText then begin
         //if aNode.IsNil then aValue:=nil;
         //aValue:= NativeNode.NodeValue;
-        Result:= StringToNative(NativeNode.NodeValue,NativeType.Name);
+        Result:= StringToNative(NativeType,NativeNode.NodeValue);
       end;
   end;
 
@@ -751,7 +758,7 @@ begin
             aNode := FindElementNode(pNode,NodeName);
             if aNode=nil then aValue:=nil
             else begin
-              aValue:= StringToNative(aNode.NodeValue,aField.FieldType.Name);
+              aValue:= StringToNative(aField.FieldType, aNode.NodeValue);
               if NodeIsNil(aNode) then aValue:=nil;
             end;
 
@@ -762,12 +769,12 @@ begin
             aNode := pNode.AttributeNodes.FindNode(NodeName);
             if aNode=nil then aValue:=nil
             else
-            aValue:= StringToNative(aNode.NodeValue,aField.FieldType.Name);
+            aValue:= StringToNative(aField.FieldType,aNode.NodeValue);
             aField.SetValue(aObj.AsObject,aValue);
           end
           else if NodeType = ntText then
           begin
-            aValue:= StringToNative(aNode.NodeValue,aField.FieldType.Name);
+            aValue:= StringToNative(aField.FieldType,aNode.NodeValue);
             aField.SetValue(aObj.AsObject,aValue);
           end;
         end;
@@ -835,13 +842,13 @@ begin
             aNode := FindElementNode(pNode,NodeName);
             if   NodeIsNil( aNode) then aValue:=nil
             else
-            TrySetUnderlyingValue(aValue, StringToNative(aNode.NodeValue,aRecord.GetField('fValue').FieldType.Name));
+            TrySetUnderlyingValue(aValue, StringToNative(aRecord.GetField('fValue').FieldType,aNode.NodeValue));
             aField.SetValue(aObj.AsObject,aValue);
           end
           else if NodeType = ntAttribute then
           begin
             aNode := pNode.AttributeNodes.FindNode(NodeName);
-            TrySetUnderlyingValue(aValue, StringToNative(aNode.NodeValue,aRecord.GetField('fValue').FieldType.Name));
+            TrySetUnderlyingValue(aValue, StringToNative(aRecord.GetField('fValue').FieldType,aNode.NodeValue));
           end;
 
         end;
