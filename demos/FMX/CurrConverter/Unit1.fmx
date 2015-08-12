@@ -1,0 +1,382 @@
+object Form1: TForm1
+  Left = 0
+  Top = 0
+  Caption = 'Form1'
+  ClientHeight = 196
+  ClientWidth = 233
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop]
+  DesignerMasterStyle = 0
+  object Label1: TLabel
+    Position.X = 8.000000000000000000
+    Position.Y = 16.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 17.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'From Currency'
+  end
+  object Label2: TLabel
+    Position.X = 8.000000000000000000
+    Position.Y = 48.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 17.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'To Currency'
+  end
+  object cbFromCurrency: TComboBox
+    Items.Strings = (
+      'AFA'
+      'ALL'
+      'DZD'
+      'ARS'
+      'AWG'
+      'AUD'
+      'BSD'
+      'BHD'
+      'BDT'
+      'BBD'
+      'BZD'
+      'BMD'
+      'BTN'
+      'BOB'
+      'BWP'
+      'BRL'
+      'GBP'
+      'BND'
+      'BIF'
+      'XOF'
+      'XAF'
+      'KHR'
+      'CAD'
+      'CVE'
+      'KYD'
+      'CLP'
+      'CNY'
+      'COP'
+      'KMF'
+      'CRC'
+      'HRK'
+      'CUP'
+      'CYP'
+      'CZK'
+      'DKK'
+      'DJF'
+      'DOP'
+      'XCD'
+      'EGP'
+      'SVC'
+      'EEK'
+      'ETB'
+      'EUR'
+      'FKP'
+      'GMD'
+      'GHC'
+      'GIP'
+      'XAU'
+      'GTQ'
+      'GNF'
+      'GYD'
+      'HTG'
+      'HNL'
+      'HKD'
+      'HUF'
+      'ISK'
+      'INR'
+      'IDR'
+      'IQD'
+      'ILS'
+      'JMD'
+      'JPY'
+      'JOD'
+      'KZT'
+      'KES'
+      'KRW'
+      'KWD'
+      'LAK'
+      'LVL'
+      'LBP'
+      'LSL'
+      'LRD'
+      'LYD'
+      'LTL'
+      'MOP'
+      'MKD'
+      'MGF'
+      'MWK'
+      'MYR'
+      'MVR'
+      'MTL'
+      'MRO'
+      'MUR'
+      'MXN'
+      'MDL'
+      'MNT'
+      'MAD'
+      'MZM'
+      'MMK'
+      'NAD'
+      'NPR'
+      'ANG'
+      'NZD'
+      'NIO'
+      'NGN'
+      'KPW'
+      'NOK'
+      'OMR'
+      'XPF'
+      'PKR'
+      'XPD'
+      'PAB'
+      'PGK'
+      'PYG'
+      'PEN'
+      'PHP'
+      'XPT'
+      'PLN'
+      'QAR'
+      'ROL'
+      'RUB'
+      'WST'
+      'STD'
+      'SAR'
+      'SCR'
+      'SLL'
+      'XAG'
+      'SGD'
+      'SKK'
+      'SIT'
+      'SBD'
+      'SOS'
+      'ZAR'
+      'LKR'
+      'SHP'
+      'SDD'
+      'SRG'
+      'SZL'
+      'SEK'
+      'CHF'
+      'SYP'
+      'TWD'
+      'TZS'
+      'THB'
+      'TOP'
+      'TTD'
+      'TND'
+      'TRL'
+      'USD'
+      'AED'
+      'UGX'
+      'UAH'
+      'UYU'
+      'VUV'
+      'VEB'
+      'VND'
+      'YER'
+      'YUM'
+      'ZMK'
+      'ZWD'
+      'TRY')
+    ItemIndex = 138
+    Position.X = 112.000000000000000000
+    Position.Y = 16.000000000000000000
+    Size.Width = 81.000000000000000000
+    Size.Height = 22.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 2
+  end
+  object cbToCurrency: TComboBox
+    Items.Strings = (
+      'AFA'
+      'ALL'
+      'DZD'
+      'ARS'
+      'AWG'
+      'AUD'
+      'BSD'
+      'BHD'
+      'BDT'
+      'BBD'
+      'BZD'
+      'BMD'
+      'BTN'
+      'BOB'
+      'BWP'
+      'BRL'
+      'GBP'
+      'BND'
+      'BIF'
+      'XOF'
+      'XAF'
+      'KHR'
+      'CAD'
+      'CVE'
+      'KYD'
+      'CLP'
+      'CNY'
+      'COP'
+      'KMF'
+      'CRC'
+      'HRK'
+      'CUP'
+      'CYP'
+      'CZK'
+      'DKK'
+      'DJF'
+      'DOP'
+      'XCD'
+      'EGP'
+      'SVC'
+      'EEK'
+      'ETB'
+      'EUR'
+      'FKP'
+      'GMD'
+      'GHC'
+      'GIP'
+      'XAU'
+      'GTQ'
+      'GNF'
+      'GYD'
+      'HTG'
+      'HNL'
+      'HKD'
+      'HUF'
+      'ISK'
+      'INR'
+      'IDR'
+      'IQD'
+      'ILS'
+      'JMD'
+      'JPY'
+      'JOD'
+      'KZT'
+      'KES'
+      'KRW'
+      'KWD'
+      'LAK'
+      'LVL'
+      'LBP'
+      'LSL'
+      'LRD'
+      'LYD'
+      'LTL'
+      'MOP'
+      'MKD'
+      'MGF'
+      'MWK'
+      'MYR'
+      'MVR'
+      'MTL'
+      'MRO'
+      'MUR'
+      'MXN'
+      'MDL'
+      'MNT'
+      'MAD'
+      'MZM'
+      'MMK'
+      'NAD'
+      'NPR'
+      'ANG'
+      'NZD'
+      'NIO'
+      'NGN'
+      'KPW'
+      'NOK'
+      'OMR'
+      'XPF'
+      'PKR'
+      'XPD'
+      'PAB'
+      'PGK'
+      'PYG'
+      'PEN'
+      'PHP'
+      'XPT'
+      'PLN'
+      'QAR'
+      'ROL'
+      'RUB'
+      'WST'
+      'STD'
+      'SAR'
+      'SCR'
+      'SLL'
+      'XAG'
+      'SGD'
+      'SKK'
+      'SIT'
+      'SBD'
+      'SOS'
+      'ZAR'
+      'LKR'
+      'SHP'
+      'SDD'
+      'SRG'
+      'SZL'
+      'SEK'
+      'CHF'
+      'SYP'
+      'TWD'
+      'TZS'
+      'THB'
+      'TOP'
+      'TTD'
+      'TND'
+      'TRL'
+      'USD'
+      'AED'
+      'UGX'
+      'UAH'
+      'UYU'
+      'VUV'
+      'VEB'
+      'VND'
+      'YER'
+      'YUM'
+      'ZMK'
+      'ZWD'
+      'TRY')
+    ItemIndex = 42
+    Position.X = 112.000000000000000000
+    Position.Y = 40.000000000000000000
+    Size.Width = 81.000000000000000000
+    Size.Height = 22.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 3
+  end
+  object btnConversionRate: TButton
+    Position.X = 8.000000000000000000
+    Position.Y = 72.000000000000000000
+    Size.Width = 185.000000000000000000
+    Size.Height = 22.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 4
+    Text = 'Get Conversion Rate'
+    OnClick = btnConversionRateClick
+  end
+  object lblResult: TLabel
+    Position.X = 8.000000000000000000
+    Position.Y = 104.000000000000000000
+    Size.Width = 185.000000000000000000
+    Size.Height = 17.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'lblResult'
+  end
+  object bsIndyTransporter1: TbsIndyTransporter
+    SendTimeout = 0
+    ReceiveTimeout = 0
+    IgnoreInvalidCerts = False
+    EnableCompression = False
+    Left = 112
+    Top = 120
+  end
+  object bsCurrency: TbsService
+    Agent = 'Besa Agent'
+    Transporter = bsIndyTransporter1
+    Options = [oUseUTF8InHeader, oUseSOAP11]
+    Left = 24
+    Top = 120
+  end
+end
