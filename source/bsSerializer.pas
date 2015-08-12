@@ -81,7 +81,7 @@ begin
     Result := FormatSettings.DecimalSeparator;
     {$ELSE}
     Result := SysUtils.DecimalSeparator;  // Delphi 2010 and below
-    {$IFEND}
+    {$ENDIF}
   {$ELSE}
   Result := SysUtils.DecimalSeparator;
   {$ENDIF}  // CONDITIONALEXPRESSIONS
@@ -123,9 +123,12 @@ begin
           Result:=StrToFloatDef( StringReplace(AValue, DEFAULT_DECIMALSEPARATOR, DecimalSeparator, [rfReplaceAll]) , 0) ;
       end;
     tkString: Result:=AValue;
-    tkWChar: if(AValue.Length>0) then Result:=WideChar(AValue.Chars[0]);
+    tkWChar:
+      if(AValue.Length>0) then
+        Result:={$IFNDEF NEXTGEN}Wide{$ENDIF}Char(AValue.Chars[0]);
+
     tkLString: Result:=AValue;
-    tkWString: Result:=WideString(AValue);
+    tkWString: Result:={$IFNDEF NEXTGEN}Wide{$ENDIF}String(AValue);
     tkInt64: Result := StrToInt64Def(AValue, 0);
     tkUString: Result:=UnicodeString(AValue);
     else
