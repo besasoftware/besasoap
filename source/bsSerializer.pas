@@ -125,10 +125,10 @@ begin
     tkString: Result:=AValue;
     tkWChar:
       if(AValue.Length>0) then
-        Result:={$IFNDEF NEXTGEN}Wide{$ENDIF}Char(AValue.Chars[0]);
+        Result:={$IFNDEF NEXTGEN}WideChar{$ELSE}Char{$ENDIF}(AValue.Chars[0]);
 
     tkLString: Result:=AValue;
-    tkWString: Result:={$IFNDEF NEXTGEN}Wide{$ENDIF}String(AValue);
+    tkWString: Result:={$IFNDEF NEXTGEN}WideString{$ELSE}String{$ENDIF}(AValue);
     tkInt64: Result := StrToInt64Def(AValue, 0);
     tkUString: Result:=UnicodeString(AValue);
     else
