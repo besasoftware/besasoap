@@ -269,8 +269,11 @@ begin
      else if TempKind=tkClass then
      begin
        LParam:=Method.GetParameters[I];
-
-       LConverter.SerializeWithNode(LParam.Name, Arg.AsObject,LNode);
+       if TbsAttributeUtils.HasAttribute(LParam.Handle,MessageHeaderAttribute)
+       then
+        LConverter.SerializeWithNode(LParam.Name, Arg.AsObject,LHeader)
+       else
+        LConverter.SerializeWithNode(LParam.Name, Arg.AsObject,LNode);
        Inc(I);
      end else
      begin
