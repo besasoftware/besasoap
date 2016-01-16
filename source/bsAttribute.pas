@@ -219,6 +219,10 @@ type
     property ReturnName: string read FReturnName write FReturnName;
   end;
 
+
+  MessageHeaderAttribute = class(TCustomXmlAttribute)
+  end;
+
   //EXmlSerializationError = class(Exception);
 
   //TMemberNodeType = (ntNone, ntElement, ntAttribute);
