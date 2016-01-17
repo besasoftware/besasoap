@@ -255,7 +255,8 @@ begin
 
    LBody :=LEnvelop.AddChild(SSoapBody);
    FService.Operation:=Method.Name;
-   LNode:=LBody.AddChild(FService.Operation,FService.NamespaceURI);
+   LNode:=LBody.AddChild(FService.Operation,FService.NamespaceURI,true);
+   //Result.DeclareNamespace(APrefix, LNamespace);
    I:=0;
 
    for Arg in Args do
