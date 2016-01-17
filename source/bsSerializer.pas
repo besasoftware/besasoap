@@ -526,7 +526,7 @@ begin
   LNameSpace:=ANamespace;
   if ANameSpace='@' then LNamespace:=targetNamespace;
 
-  if not FDefNSAdded
+  {if not FDefNSAdded
   then
     begin
       Result:=AParentNode.AddChild(ANodeName,targetNamespace,True);
@@ -535,7 +535,7 @@ begin
 
       FDefNSAdded:=True;
     end
-  else if (AForm=sfQualified)
+  else} if (AForm=sfQualified)
   then
     begin
       if Length(APrefix)>0
