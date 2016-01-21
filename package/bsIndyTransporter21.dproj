@@ -80,7 +80,7 @@
     <PropertyGroup Condition="'$(Base)'!=''">
         <GenPackage>true</GenPackage>
         <SanitizedProjectName>bsIndyTransporter21</SanitizedProjectName>
-        <DCC_UnitSearchPath>..\source\$(Platform);$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+        <DCC_UnitSearchPath>..\source;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
         <GenDll>true</GenDll>
         <DCC_F>false</DCC_F>
         <VerInfo_Locale>1055</VerInfo_Locale>

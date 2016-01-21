@@ -49,7 +49,7 @@
         <VerInfo_Locale>1055</VerInfo_Locale>
         <DCC_Description>BesaSoftware SOAP Client Component</DCC_Description>
         <VerInfo_MinorVer>1</VerInfo_MinorVer>
-        <DCC_UnitSearchPath>..\source\$(Platform);$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+        <DCC_UnitSearchPath>..\source;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
         <DCC_Namespace>Vcl;Vcl.Imaging;Vcl.Touch;Vcl.Samples;Vcl.Shell;System;Xml;Data;Datasnap;Web;Soap;$(DCC_Namespace)</DCC_Namespace>
         <VerInfo_Keys>CompanyName=Besa Software;FileDescription=SOAP Component;FileVersion=1.1.0.0;InternalName=BesaSoap;LegalCopyright=Besa Software;LegalTrademarks=Besa Software;OriginalFilename=bsSOAPClient;ProductName=BesaSoap;ProductVersion=1.0.0.0;Comments=SOAP Component;CFBundleName=</VerInfo_Keys>
         <DCC_S>false</DCC_S>

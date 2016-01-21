@@ -52,7 +52,7 @@
         <DCC_Description>BesaSoftware SOAP Client Component</DCC_Description>
         <DCC_F>false</DCC_F>
         <DCC_S>false</DCC_S>
-        <DCC_UnitSearchPath>..\source\$(Platform);$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+        <DCC_UnitSearchPath>..\source;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
         <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=;CFBundleName=;CFBundleDisplayName=;CFBundleIdentifier=;CFBundleVersion=;CFBundlePackageType=;CFBundleSignature=;CFBundleAllowMixedLocalizations=;CFBundleExecutable=</VerInfo_Keys>
         <DCC_K>false</DCC_K>
         <DCC_N>false</DCC_N>
