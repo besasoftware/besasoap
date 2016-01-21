@@ -1,5 +1,6 @@
 unit bsWinInetTransporter;
 {$I Besa.inc}
+{TWinINet from https://github.com/synopse/mORMot/blob/master/SynCrtSock.pas}
 
 interface
 uses
