@@ -218,6 +218,7 @@ var
   HTTPTransporter : IBSHTTPTransporter;
   aAttribute : TCustomAttribute;
   HasHolderAttribute:Boolean;
+  IsMessageHeader:Boolean;
 begin
   if FService.Transporter=nil then
     raise Exception.Create('Please select a Transporter.');
@@ -270,7 +271,15 @@ begin
      else if TempKind=tkClass then
      begin
        LParam:=Method.GetParameters[I];
-       if TbsAttributeUtils.HasAttribute(LParam.Handle,MessageHeaderAttribute)
+
+       IsMessageHeader:=False;
+       for aAttribute in LParam.GetAttributes do
+         if (aAttribute is MessageHeaderAttribute) then IsMessageHeader:=True;
+
+       if not IsMessageHeader then
+         IsMessageHeader:=TbsAttributeUtils.HasAttribute(Arg.TypeInfo,MessageHeaderAttribute);
+
+       if IsMessageHeader
        then
         LConverter.SerializeWithNode(LParam.Name, Arg.AsObject,LHeader)
        else
@@ -287,6 +296,7 @@ begin
    try
      try
        LRequest:=TStringStream.Create;
+       LReqDoc.Version:='1.0';
        LReqDoc.Encoding:='utf-8';
        LReqDoc.SaveToStream(LRequest);
 
