@@ -300,9 +300,9 @@ procedure TWinINet.InternalRequest(const method, aURL: RawByteString);
 const ALL_ACCEPT: array[0..1] of PAnsiChar = ('*/*',nil);
 var Flags: DWORD;
 begin
-  Flags := INTERNET_FLAG_HYPERLINK or INTERNET_FLAG_PRAGMA_NOCACHE or
-           INTERNET_FLAG_RESYNCHRONIZE; // options for a true RESTful request
-
+  Flags := INTERNET_FLAG_HYPERLINK or INTERNET_FLAG_PRAGMA_NOCACHE
+ //   or INTERNET_FLAG_RESYNCHRONIZE // options for a true RESTful request
+    ;
   if fKeepAlive<>0 then
     Flags := Flags or INTERNET_FLAG_KEEP_CONNECTION;
   if fHttps then
@@ -316,7 +316,7 @@ begin
   end;
 
   FRequest := HttpOpenRequestA(FConnection, Pointer(method), Pointer(aURL), nil,
-    nil, @ALL_ACCEPT, Flags,0);
+    nil, nil{@ALL_ACCEPT}, Flags,0);
 
   if FRequest=nil then
     raise EWinInetException.Create;
@@ -371,7 +371,6 @@ function TWinINet.Request(const url, method: RawByteString; KeepAlive: cardinal;
 var aData, aDataEncoding, aAcceptEncoding, aURL: RawByteString;
     Bytes, ContentLength, Read,SecurityFlags: DWORD;
     i: integer;
-    ZipFlag: LongBool;
 begin
   if (url='') or (url[1]<>'/') then
     aURL := '/'+url else // need valid url according to the HTTP/1.1 RFC
@@ -384,7 +383,7 @@ begin
     if InDataType<>'' then
       InternalAddHeader(RawByteString('Content-Type: ')+InDataType);
     // handle custom compression
-    InternalAddHeader(RawByteString('Accept-Encoding: gzip, deflate');
+    InternalAddHeader(RawByteString('Accept-Encoding: gzip, deflate'));
     aData := InData;
 
     if IgnoreInvalidCerts then begin
@@ -396,8 +395,6 @@ begin
                                    or INTERNET_ERROR_MASK_LOGIN_FAILURE_DISPLAY_ENTITY_BODY;
       InternetSetOption(fRequest, INTERNET_OPTION_SECURITY_FLAGS, Pointer(@SecurityFlags), SizeOf(SecurityFlags));
     end;
-    ZipFlag:=True;
-    InternetSetOption(Data, INTERNET_OPTION_HTTP_DECODING, PChar(@ZipFlag), SizeOf(ZipFlag));
     // send request to remote server
     InternalSendRequest(aData);
     // retrieve status and headers (HTTP_QUERY* and WINHTTP_QUERY* do match)
