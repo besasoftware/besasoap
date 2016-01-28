@@ -271,7 +271,7 @@ begin
      else if TempKind=tkClass then
      begin
        LParam:=Method.GetParameters[I];
-
+       LConverter.ElementForm:=FService.ElementForm;
        IsMessageHeader:=False;
        for aAttribute in LParam.GetAttributes do
          if (aAttribute is MessageHeaderAttribute) then IsMessageHeader:=True;
@@ -288,11 +288,15 @@ begin
      end else
      begin
         LParam:=Method.GetParameters[I];
+        for aAttribute in LParam.GetAttributes do
+         if (aAttribute is XmlFormAttribute)
+          then
+            LConverter.ElementForm:=XmlFormAttribute(aAttribute).Form;
         LConverter.SerializeWithNode(LParam.Name, Arg,LNode);
         Inc(I);
      end;
    end;
-
+   LConverter.ElementForm:=FService.ElementForm;
    try
      try
        LRequest:=TStringStream.Create;
