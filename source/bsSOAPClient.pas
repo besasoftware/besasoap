@@ -296,6 +296,10 @@ begin
         Inc(I);
      end;
    end;
+   // Remove, if not used.
+   if (LHeader.ChildNodes.Count = 0) then
+     LEnvelop.ChildNodes.Remove(LHeader);
+
    LConverter.ElementForm:=FService.ElementForm;
    try
      try
@@ -358,7 +362,7 @@ begin
          LResponseNode:=LBody.ChildNodes.First;
 
 
-         if LResponseNode=nil then raise Exception.Create('Can not any Response Node');
+         if LResponseNode=nil then raise Exception.Create('Cannot find any response node!');
 
          if LResponseNode.LocalName<>FService.Operation+SSoapResponseSuff then
          raise Exception.Create('Can not find Response Node');
