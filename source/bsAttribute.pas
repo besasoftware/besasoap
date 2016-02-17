@@ -390,8 +390,8 @@ var
  c : TRttiContext;
  lAttr : TCustomAttribute;
 begin
+ Result:=False;
  c := TRttiContext.Create;
-
  try
    for lAttr in c.GetType(Atype).GetAttributes do
    begin
@@ -411,6 +411,7 @@ class function TbsAttributeUtils.HasAttribute(aType: pTypeinfo;
 var
  c : TRttiContext;
 begin
+ Result:=False;
  c := TRttiContext.Create;
  try
    result := HasAttribute(c, c.GetType(aType),aClass,Attr);
@@ -422,6 +423,7 @@ end;
 class function TbsAttributeUtils.HasAttribute(aContext: TRttiContext; aType: TRttiObject;
   aClass: TCustomAttributeClass; var Attr: TCustomAttribute): Boolean;
 begin
+  Result:=False;
   Attr := GetAttribute(aContext,aType,aClass);
   result := Assigned(Attr);
 end;
