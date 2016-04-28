@@ -283,7 +283,7 @@ var
   LNamespaceAdded:Boolean;
   aNodeValue:String;
   sPrefix{,sNamespace}: string;
-
+  aFieldTypeKind :TTypeKind;
 
   function ReadNullableRecord(anObj: TValue): TValue;
   begin
@@ -372,7 +372,9 @@ begin
     if not(aField.Visibility in [mvPublic, mvPublished]) then
       Continue;
 
-    case aField.FieldType.TypeKind of
+
+    aFieldTypeKind:=aField.FieldType.TypeKind;
+    case aFieldTypeKind of
       tkUnknown:
         begin
 
@@ -641,8 +643,8 @@ var
         TmpNode:=ArrayNode.ParentNode.ChildNodes[I];
         if (ArrayNode.LocalName=TmpNode.LocalName) then
           ArrayList.Add(TmpNode)
-        else
-          Break;
+        //else
+        //  Break;
       end;
 
       ArrayLen:=ArrayList.Count;
@@ -826,6 +828,7 @@ begin
           aNode := FindElementNode( pNode,NodeName);
           if aNode=nil then Continue;
           aValue:=XML2ObjDynArray(aNode, aField.FieldType,AsElement);
+          aField.SetValue(aObj.AsObject,aValue);
         end;
       tkRecord:
         begin
