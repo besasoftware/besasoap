@@ -1,3 +1,15 @@
+(******************************************************)
+(*                                                    *)
+(*            Besa Software Classes Library           *)
+(*                                                    *)
+(*  Copyright (c) 2011-2016 BesaSoftware Corporation  *)
+(*           http://www.besasoftware.com              *)
+(*                                                    *)
+(******************************************************)
+
+/// <summary>
+/// Nullable Types Library 
+/// </summary>
 unit bsNullable;
 // from spring4d
 interface

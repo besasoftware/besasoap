@@ -1,3 +1,15 @@
+(******************************************************)
+(*                                                    *)
+(*            Besa Software Classes Library           *)
+(*                                                    *)
+(*  Copyright (c) 2011-2016 BesaSoftware Corporation  *)
+(*           http://www.besasoftware.com              *)
+(*                                                    *)
+(******************************************************)
+
+/// <summary>
+/// SOAP Client Library 
+/// </summary>
 unit bsSOAPClient;
 
 {$I Besa.inc}

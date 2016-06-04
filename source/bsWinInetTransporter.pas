@@ -1,3 +1,15 @@
+(******************************************************)
+(*                                                    *)
+(*            Besa Software Classes Library           *)
+(*                                                    *)
+(*  Copyright (c) 2011-2016 BesaSoftware Corporation  *)
+(*           http://www.besasoftware.com              *)
+(*                                                    *)
+(******************************************************)
+
+/// <summary>
+/// WinInet Transporter Library 
+/// </summary>
 unit bsWinInetTransporter;
 {$I Besa.inc}
 {TWinINet from https://github.com/synopse/mORMot/blob/master/SynCrtSock.pas}
