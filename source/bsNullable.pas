@@ -32,7 +32,7 @@ type
   ///	  The underlying value type of the <see cref="Nullable&lt;T&gt;" />generic
   ///	   type.
   ///	</typeparam>
-  Nullable<T> = packed record
+  Nullable<T> = record
   private
     const CHasValueFlag = '@';  // DO NOT LOCALIZE
   strict private

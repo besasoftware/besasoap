@@ -119,6 +119,7 @@ type
     FOptions: TbsOptions;
     FOperation: string;
     FElementForm:TSchemaForm;
+    FNameSpaceList : TStringList;
     FOnBeforeExecuteEvent :TBeforeExecuteEvent;
     FOnAfterExecuteEvent: TAfterExecuteEvent;
     procedure SetURL(const Value: string);
@@ -139,6 +140,7 @@ type
     function QueryInterface(const IID: TGUID; out Obj): HResult; override; stdcall;
     procedure RegisterInterface(AInterface: PTypeInfo; ANamespace: string='');
     procedure RegisterSoapAction(AOperation, ASoapAction:String);
+    procedure RegisterNamespace(AURL:String; APrefix:String='');
     property ServiceTypeInfo : PTypeInfo read FServiceTypeInfo write SetServiceTypeInfo;
     property Headers : TbsHeaderList read FHeaderList write FHeaderList;
     property Operation: string read FOperation write FOperation;
@@ -248,6 +250,12 @@ begin
   LEnvelop.DeclareNamespace(SXMLSchemaInstNameSpace99Pre, XMLSchemaInstNameSpace);
   //if not (soDocument in Options) then  'SOAP-ENC'
   LEnvelop.DeclareNamespace(SSoapEncodingPre, SoapEncodingNamespaces[oUseSOAP12 in FService.Options]);
+
+  for I := 0 to FService.FNameSpaceList.Count-1 do
+  begin
+    LEnvelop.DeclareNamespace(FService.FNameSpaceList.ValueFromIndex[I], FService.FNameSpaceList.Names[I]);
+  end;
+
 
   if FService<>nil then
   begin
@@ -459,6 +467,7 @@ begin
   FSOAPAction:=TStringList.Create;
   FSOAPAction.Delimiter:= '|';
   FHeaderList := TbsHeaderList.Create;
+  FNameSpaceList := TStringList.Create;
 end;
 
 function TbsService.GetAuthentication: TbsCustomAuthenticate;
@@ -680,6 +689,11 @@ begin
   FNamespaceURI:=ANameSpace;
 end;
 
+procedure TbsService.RegisterNamespace(AURL, APrefix: String);
+begin
+  FNameSpaceList.Values[AUrl]:=APrefix;
+end;
+
 procedure TbsService.RegisterSoapAction(AOperation, ASoapAction: String);
 begin
   FSoapAction.Values[AOperation]:=ASoapAction;
@@ -701,6 +715,7 @@ begin
     if FRIO.RefCount>0  then FRIO._Release;
   FHeaderList.Free;
   FSOAPAction.Free;
+  FNameSpaceList.Free;
   inherited;
 end;
 

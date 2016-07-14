@@ -384,8 +384,9 @@ begin
     if not(aField.Visibility in [mvPublic, mvPublished]) then
       Continue;
 
+   Assert(aField.FieldType<>NIL,'aField.FieldType is NIL, reason may be Nullable(Type) like generic records.');
+   aFieldTypeKind:=aField.FieldType.TypeKind;
 
-    aFieldTypeKind:=aField.FieldType.TypeKind;
     case aFieldTypeKind of
       tkUnknown:
         begin
@@ -498,7 +499,7 @@ begin
 
           if (NodeType = ntElement) then
           begin
-            node:=AddChild(pNode,NodeName,aForm);
+            node:=AddChild(pNode,NodeName,aForm,NamespaceURI);
             if (aValue.IsEmpty) then
               node.NodeValue:=''
             else

@@ -1,3 +1,15 @@
+(******************************************************)
+(*                                                    *)
+(*                   Besa Software                    *)
+(*                                                    *)
+(*  Copyright (c) 2011-2016 BesaSoftware Corporation  *)
+(*           http://www.besasoftware.com              *)
+(*                                                    *)
+(******************************************************)
+
+/// <summary>
+/// Attribute Library 
+/// </summary>
 unit bsAttribute;
 
 interface
