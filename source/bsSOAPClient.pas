@@ -18,8 +18,8 @@ interface
 
 uses
   Classes,SysUtils,TypInfo, Rtti,Generics.Collections,System.Generics.Collections,
-  bsSerializer, bsConst, bsTransporter,XMLIntf,XMLDoc,bsAttribute,
-  bsClasses, bsAuthentication;
+  bsSerializer, bsConst, bsTransporter ,XMLIntf, XMLDoc, bsAttribute,
+  bsClasses, bsAuthentication, bsWSAddressing, bsWSSecurity;
 
 type
 
@@ -51,6 +51,7 @@ type
 
   TBeforeExecuteEvent = procedure(const MethodName: string; SOAPRequest: TStream) of object;
   TAfterExecuteEvent  = procedure(const MethodName: string; SOAPResponse: TStream) of object;
+
 
 
   TbsService=class;
@@ -120,6 +121,9 @@ type
     FOperation: string;
     FElementForm:TSchemaForm;
     FNameSpaceList : TStringList;
+    FAuthenticationType : TbsAuthenticationType;
+    FWSAddressing : TbsWSAddressing;
+    FWSSEConfig:TbsWSSEConfig;
     FOnBeforeExecuteEvent :TBeforeExecuteEvent;
     FOnAfterExecuteEvent: TAfterExecuteEvent;
     procedure SetURL(const Value: string);
@@ -132,6 +136,7 @@ type
     function GetSoapAction(OperationName:String=''):String;
     function GetContentType:string;
     procedure SetOptions(const Value: TbsOptions);
+    procedure SetAuthenticationType(const Value: TbsAuthenticationType);
   protected
     property RIO : TbsRIO read FRIO write FRIO;
   public
@@ -159,7 +164,11 @@ type
     property ProxyUsername :string read FProxyUsername write FProxyUsername; //username if the proxy requires authentication
     property ProxyPassword :string read FProxyPassword write FProxyPassword; //password if the proxy requires authentication
 
+    property AuthenticationType : TbsAuthenticationType read FAuthenticationType write SetAuthenticationType;
+    property WSAddressing : TbsWSAddressing read FWSAddressing write FWSAddressing;
+
     property Authentication : TbsCustomAuthenticate read GetAuthentication write SetAuthentication;
+    property WSSEConfig:TbsWSSEConfig read FWSSEConfig write FWSSEConfig;
     property Transporter : TbsTransporter read GetTransporter write SetTransporter;
     property Options : TbsOptions read FOptions write SetOptions;
     property OnBeforeExecute :TBeforeExecuteEvent read FOnBeforeExecuteEvent write FOnBeforeExecuteEvent;
@@ -250,33 +259,63 @@ begin
   LEnvelop.DeclareNamespace(SXMLSchemaInstNameSpace99Pre, XMLSchemaInstNameSpace);
   //if not (soDocument in Options) then  'SOAP-ENC'
   LEnvelop.DeclareNamespace(SSoapEncodingPre, SoapEncodingNamespaces[oUseSOAP12 in FService.Options]);
+  FService.Operation:= Method.Name;
+
+  if FService.WSAddressing.Enabled then
+  begin
+    case FService.WSAddressing.Version of
+      wsv200508: LEnvelop.DeclareNamespace(SWSAPre, SWSA_2005_08);
+      wsv200408: LEnvelop.DeclareNamespace(SWSAPre, SWSA_2004_08);
+    end;
+
+    if FService.WSAddressing.AddDefaultAction
+    then
+      FService.WSAddressing.Action:=FService.GetSoapAction;
+
+    if FService.WSAddressing.AddDefaultTo
+    then
+      FService.WSAddressing.To_:=FService.URL;
+
+  end;
 
   for I := 0 to FService.FNameSpaceList.Count-1 do
   begin
     LEnvelop.DeclareNamespace(FService.FNameSpaceList.ValueFromIndex[I], FService.FNameSpaceList.Names[I]);
   end;
 
-
-  if FService<>nil then
-  begin
-    LEnvelop.DeclareNamespace('ns', FService.NamespaceURI);
-    LConverter.targetNamespace:=FService.NamespaceURI;
-  end;
+  if FService<>nil
+  then
+    begin
+      LEnvelop.DeclareNamespace('ns', FService.NamespaceURI);
+      LConverter.targetNamespace:=FService.NamespaceURI;
+    end;
 
    LHeader :=LEnvelop.AddChild(SSoapHeader);
-   if FService.Authentication<>nil then
-   begin
-    FService.Authentication.Username:=FService.Username;
-    FService.Authentication.Password:=FService.Password;
 
-    FService.Authentication.GenerateNode(LHeader);
-   end;
+   if FService.Authentication<>nil
+   then
+     begin
+      FService.Authentication.Username:=FService.Username;
+      FService.Authentication.Password:=FService.Password;
+      FService.Authentication.GenerateNode(LHeader); //  ??
+     end;
+
+
+   if FService.WSAddressing.Enabled
+   then
+    FService.WSAddressing.GenerateNode(LHeader);
+
+   FService.WSSEConfig.GenerateNode(LHeader);
+
+   LBody:= LEnvelop.AddChild(SSoapBody);
 
 
 
-   LBody :=LEnvelop.AddChild(SSoapBody);
-   FService.Operation:=Method.Name;
-   LNode:=LBody.AddChild(FService.Operation,FService.NamespaceURI,true);
+   if (oUseSOAP12 in FService.Options)
+   then
+     LNode:=LBody
+   else
+     LNode:=LBody.AddChild(FService.Operation,FService.NamespaceURI, true);
    //Result.DeclareNamespace(APrefix, LNamespace);
    I:=0;
 
@@ -301,9 +340,9 @@ begin
 
        if IsMessageHeader
        then
-        LConverter.SerializeWithNode(LParam.Name, Arg.AsObject,LHeader)
+        LConverter.SerializeWithNode(LParam.Name, Arg.AsObject, LHeader)
        else
-        LConverter.SerializeWithNode(LParam.Name, Arg.AsObject,LNode);
+        LConverter.SerializeWithNode(LParam.Name, Arg.AsObject, LNode);
        Inc(I);
      end else
      begin
@@ -462,12 +501,16 @@ end;
 constructor TbsService.Create(AOwner: TComponent);
 begin
   inherited;
-  FAgent:=SAgent;
-  FOptions:=[oUseSOAP11,oUseUTF8InHeader];
-  FSOAPAction:=TStringList.Create;
-  FSOAPAction.Delimiter:= '|';
-  FHeaderList := TbsHeaderList.Create;
-  FNameSpaceList := TStringList.Create;
+  FAgent                := SAgent;
+  FOptions              := [oUseSOAP11,oUseUTF8InHeader];
+  FSOAPAction           := TStringList.Create;
+  FSOAPAction.Delimiter := '|';
+  FHeaderList           := TbsHeaderList.Create;
+  FNameSpaceList        := TStringList.Create;
+  FAuthentication       := NIL;
+  FAuthenticationType   := atNoAuthenticate;
+  FWSAddressing        := TbsWSAddressing.Create;
+  FWSSEConfig           := TbsWSSEConfig.Create;
 end;
 
 function TbsService.GetAuthentication: TbsCustomAuthenticate;
@@ -522,12 +565,43 @@ begin
   FAuthentication:=Value;
 end;
 
-procedure TbsService.SetOptions(const Value: TbsOptions);
+procedure TbsService.SetAuthenticationType(const Value: TbsAuthenticationType);
 begin
-  if  (oUseSOAP11 in Value) and (oUseSOAP12 in Value) then
-    raise Exception.Create('Can not set oUseSOAP11 and oUseSOAP12 same time.');
+  if (FAuthenticationType<>Value) or (FAuthentication=nil)  then
+  begin
+    FAuthenticationType := Value;
+    if FAuthentication<>NIL then FAuthentication.Free;
+    case Value of
+      atNoAuthenticate: FAuthentication:=TbsAuthNone.Create;
+      atBasic         : FAuthentication:=TbsAuthBasic.Create;
+    end;
+  end;
+end;
 
-  FOptions := Value;
+procedure TbsService.SetOptions(const Value: TbsOptions);
+var
+  LOpts:TbsOptions;
+begin
+  if FOptions<> Value then
+  begin
+    LOpts:=Value;
+
+    if  (oUseSOAP11 in FOptions) and not (oUseSOAP12 in FOptions) and (oUseSOAP12 in LOpts) then
+    begin
+      LOpts:=LOpts-[oUseSOAP11];
+    end;
+
+    if  not (oUseSOAP11 in FOptions) and (oUseSOAP12 in FOptions) and (oUseSOAP11 in LOpts) then
+    begin
+      LOpts:=LOpts-[oUseSOAP12];
+    end;
+
+    if  (oUseSOAP11 in LOpts) and (oUseSOAP12 in LOpts)
+    then
+      LOpts:=LOpts-[oUseSOAP12];
+
+    FOptions := LOpts;
+  end;
 end;
 
 procedure TbsService.SetServiceTypeInfo(const Value: PTypeInfo);
@@ -716,6 +790,8 @@ begin
   FHeaderList.Free;
   FSOAPAction.Free;
   FNameSpaceList.Free;
+  FWSAddressing.Free;
+  FWSSEConfig.Free;
   inherited;
 end;
 

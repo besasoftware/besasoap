@@ -109,7 +109,9 @@ const
   SXMLSchemaURI_2001 = SHttp+'/www.w3.org/2001/XMLSchema';
   SXMLSchemaInstURI = SHttp+'/www.w3.org/2001/XMLSchema-instance';
 
-
+  SWSA_2005_08='http://www.w3.org/2005/08/addressing';
+  SWSA_2004_08='http://schemas.xmlsoap.org/ws/2004/08/addressing';
+  SWSAPre = 'wsa';
 var
 
   XMLSchemaNameSpace: string = SXMLSchemaURI_2001;    { Default namespace we publish under }

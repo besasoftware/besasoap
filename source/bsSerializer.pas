@@ -99,7 +99,7 @@ begin
   {$ENDIF}  // CONDITIONALEXPRESSIONS
 end; { DecimalSeparator }
 
-class function TbsXMLSerializer.StringToNative(AType:TRttiType;AValue:string) : TValue;
+class function TbsXMLSerializer.StringToNative(AType: TRttiType; AValue: string) : TValue;
 var
   ADateTime :TDateTime;
 begin
@@ -316,8 +316,10 @@ begin
   TbsAttributeUtils.GetXMLElementAttribute(FContext,aType,NodeName,AForm,NamespaceURI);
   TbsAttributeUtils.GetXMLFormAttribute(FContext,aType,AForm);
 
-  if aObj.IsObject then  begin
-    if (aObj.AsObject =nil) then begin
+  if aObj.IsObject then
+  begin
+    if (aObj.AsObject =nil) then
+    begin
       pNode:= AddChild(ParentNode,NodeName,AForm);
       SetNodeNil(pNode);
       Exit;
@@ -362,8 +364,11 @@ begin
     aRecord:= aType.AsRecord;
     pNode.NodeValue :=  NativeToString(aRecord.GetField('fValue').FieldType,aValue);
     Exit;
-  end else if aType.TypeKind in [tkInteger, tkInt64, tkChar, tkEnumeration, tkFloat, tkString, tkWChar,
-        tkLString, tkWString, tkVariant, tkUString, tkSet] then begin
+  end else if aType.TypeKind in [tkInteger, tkInt64, tkChar, tkEnumeration,
+                                 tkFloat, tkString, tkWChar, tkLString,
+                                 tkWString, tkVariant, tkUString, tkSet]
+  then
+  begin
     pNode:=AddChild(ParentNode,NodeName,AForm);
     pNode.NodeValue:= NativeToString(aType,aObj);
     Exit;
@@ -392,8 +397,9 @@ begin
         begin
 
         end;
-      tkInteger, tkInt64, tkChar, tkEnumeration, tkFloat, tkString, tkWChar,
-        tkLString, tkWString, tkVariant, tkUString, tkSet:
+      tkInteger, tkInt64, tkChar, tkEnumeration, tkFloat,
+      tkString, tkWChar, tkLString, tkWString, tkVariant, tkUString,
+      tkSet:
         begin
           NodeName := aField.Name;
           NamespaceURI:=PNode.NamespaceURI;
@@ -550,7 +556,7 @@ begin
 
       FDefNSAdded:=True;
     end
-  else} if (AForm=sfQualified)
+  else} if (AForm in[sfNone,sfQualified])
   then
     begin
       if Length(APrefix)>0
@@ -618,17 +624,20 @@ var
 
       if NativeNode = nil then Exit;
 
-      if NativeNodeType = ntElement then begin
+      if NativeNodeType = ntElement then
+      begin
         if NodeIsNil(NativeNode) then aValue:=nil;
         Result:= StringToNative(NativeType,NativeNode.NodeValue);
       end
-      else if NativeNodeType = ntAttribute then begin
+      else if NativeNodeType = ntAttribute then
+      begin
         NativeChildNode :=  NativeNode.AttributeNodes.FindNode(NativeNodeName);
         //if aNode.IsNil then aValue:=nil;
         //aValue:= NativeChildNode.NodeValue;
         Result:= StringToNative(NativeType,NativeChildNode.NodeValue);
       end
-      else if NativeNodeType = ntText then begin
+      else if NativeNodeType = ntText then
+      begin
         //if aNode.IsNil then aValue:=nil;
         //aValue:= NativeNode.NodeValue;
         Result:= StringToNative(NativeType,NativeNode.NodeValue);
@@ -649,7 +658,8 @@ var
     I:Integer;
   begin
     //SelectNodes...
-    if ElementArray then begin
+    if ElementArray then
+    begin
       ArrayList :=TInterfaceList.Create;
       TmpNode:=ArrayNode;
       for I := 0 to ArrayNode.ParentNode.ChildNodes.Count-1 do begin
@@ -666,63 +676,64 @@ var
 
     // TByteDynArray ...
     if (TRttiDynamicArrayType(ArrayType).ElementType.Handle = TypeInfo(Byte))
-        and (ArrayLen=0) then begin
+        and (ArrayLen=0) then
+    begin
         S:=  ArrayNode.NodeValue;
 
         S:=Base64Decode(ArrayNode.NodeValue);
         TB:=TEncoding.UTF8{ANSI}.GetBytes(S);
         TValue.Make(@TB,TRttiDynamicArrayType(aType).Handle,Result);
-    end else begin
+    end else
+    begin
+      SetLength(ArrayValue,ArrayLen);
+      for Arr := 0 to ArrayLen-1 do
+      begin
+        TValue.Make(nil,TRttiDynamicArrayType(ArrayType).ElementType.Handle,ArrayItem);
+        if ElementArray
+        then
+          begin
+            TmpNode:=(ArrayList[Arr] as IXMLNode);
+            DeSerializeWithNode( TmpNode.LocalName, ArrayItem, TmpNode)
+          end
+        else
+          DeSerializeWithNode(ArrayNode.ChildNodes[Arr].LocalName, ArrayItem, ArrayNode.ChildNodes[Arr]);
 
-    SetLength(ArrayValue,ArrayLen);
-    for Arr := 0 to ArrayLen-1 do begin
-      TValue.Make(nil,TRttiDynamicArrayType(ArrayType).ElementType.Handle,ArrayItem);
-      if ElementArray
-      then
-        begin
-          TmpNode:=(ArrayList[Arr] as IXMLNode);
-          DeSerializeWithNode( TmpNode.LocalName, ArrayItem, TmpNode)
-        end
-      else
-        DeSerializeWithNode(ArrayNode.ChildNodes[Arr].LocalName, ArrayItem, ArrayNode.ChildNodes[Arr]);
+        ArrayValue[Arr]:= ArrayItem;
+      end;
 
-      ArrayValue[Arr]:= ArrayItem;
-    end;
-
-     Result:= TValue.FromArray(ArrayType.Handle,ArrayValue);
+     Result:= TValue.FromArray(ArrayType.Handle, ArrayValue);
     end;
     ArrayList.Free;
   end;
-
-
 
 begin
   aType :=aContext.GetType(aObj.TypeInfo);
 
 
-  if not aObj.IsObject then begin
+  if not aObj.IsObject then
+  begin
     case aType.TypeKind of
-      tkInteger, tkChar, tkFloat, tkString, tkWChar, tkLString, tkWString,
-      tkUString, tkInt64,tkVariant,tkEnumeration:
+      tkInteger, tkChar, tkFloat, tkString, tkWChar, tkLString,
+      tkWString, tkUString, tkInt64, tkVariant, tkEnumeration :
 
-      aObj:= XML2ObjNative(ParentNode,aType,ANodeName);
+        aObj:= XML2ObjNative(ParentNode,aType,ANodeName);
+
       tkDynArray:
         begin
           AsElement:=False;
 
-          if TbsAttributeUtils.GetXMLElementAttribute(aContext,aType,NodeName,Form,NamespaceURI) then
+          if TbsAttributeUtils.GetXMLElementAttribute(aContext,aType,NodeName,Form,NamespaceURI)
+          then
             AsElement := True;
           TbsAttributeUtils.GetXMLFormAttribute(aContext,aType,Form);
 
-
-         if not AsElement then
+          if not AsElement then
           begin
             TbsAttributeUtils.GetXMLArrayAttribute(aContext,aType,NodeName);
             // ArrayItem
             NodeName := 'item';
             TbsAttributeUtils.GetXMLArrayItemAttribute(aContext,aType,NodeName);
           end;
-
 
           aObj:=XML2ObjDynArray(ParentNode, aType,AsElement);
 
@@ -731,6 +742,39 @@ begin
       //tkClass: ;
       //tkArray: ;
       //tkRecord: ;
+      tkRecord:
+
+
+        begin
+          NodeName := ANodeName;
+          NodeType := TNodeType.ntElement;
+
+          TbsAttributeUtils.GetXmlAttributeAttribute(aContext, aType, NodeName, NamespaceURI);
+          TbsAttributeUtils.GetXmlElementAttribute(aContext, aType, NodeName, Form, NamespaceURI);
+
+          // Type Casting
+          //TValue.Make(nil, aField.FieldType.Handle,aValue);
+          aValue:=aObj;//ReadNullableRecord(aObj);
+          aRecord:=aType.AsRecord;
+
+          if (NodeType = ntElement) then
+          begin
+            aNode := ParentNode;//FindElementNode(ParentNode,NodeName);
+            if   NodeIsNil( aNode)
+            then
+              aValue:=nil
+            else
+              TrySetUnderlyingValue(aValue, StringToNative(aRecord.GetField('fValue').FieldType,aNode.NodeValue));
+
+          end
+          else if NodeType = ntAttribute then
+          begin
+            aNode := pNode.AttributeNodes.FindNode(NodeName);
+            TrySetUnderlyingValue(aValue, StringToNative(aRecord.GetField('fValue').FieldType,aNode.NodeValue));
+          end;
+
+        end;
+
     end;
 
   end else
@@ -749,7 +793,8 @@ begin
 
     pNode:=ParentNode;
 
-  for aField in aType.GetFields do begin
+  for aField in aType.GetFields do
+  begin
     if not(aField.Visibility in [mvPublic, mvPublished]) then
       Continue;
 
@@ -775,10 +820,11 @@ begin
           begin
             aNode := FindElementNode(pNode,NodeName);
             if aNode=nil then aValue:=nil
-            else begin
-              aValue:= StringToNative(aField.FieldType, aNode.NodeValue);
-              if NodeIsNil(aNode) then aValue:=nil;
-            end;
+            else
+              begin
+                aValue:= StringToNative(aField.FieldType, aNode.NodeValue);
+                if NodeIsNil(aNode) then aValue:=nil;
+              end;
 
             aField.SetValue(aObj.AsObject,aValue);
           end
@@ -843,6 +889,7 @@ begin
           aValue:=XML2ObjDynArray(aNode, aField.FieldType,AsElement);
           aField.SetValue(aObj.AsObject,aValue);
         end;
+
       tkRecord:
         begin
           NodeName := aField.Name;
