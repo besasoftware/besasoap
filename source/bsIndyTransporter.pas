@@ -33,12 +33,17 @@ type
   TbsIndyTransporter=class(TbsHttpTransporter)
   private
     FIdHttp: TIdHTTP;
+    FSSLOptions: TIdSSLOptions;
     FEnabledCompression: Boolean;
     procedure Init;
   public
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
     procedure Get(AURL: string; AResponseContent: TStream);
     procedure Post(AURL: string; ASource, AResponseContent: TStream);
     function Execute(Request : TStream):TStream; override;
+   published
+    property SSLOptions : TIdSSLOptions read FSSLOptions write FSSLOptions;
   end;
 
   EIndyException=class(ETransporterException)
@@ -64,22 +69,15 @@ begin
   FIdHttp:= TIdHTTP.Create(nil);
   //FIdHttp.ReadTimeout:=ReceiveTimeout;
 
-
   FIdHttp.HandleRedirects := True;
   FIdHttp.AllowCookies:= True;
-
   //FIdHttp.Request.CustomHeaders.FoldLines := false;
 
   if URI.Https then
   begin
     FIdSSLIOHandlerSocketOpenSSL:=TIdSSLIOHandlerSocketOpenSSL.Create(FIdHttp);
     FIdHttp.IOHandler :=FIdSSLIOHandlerSocketOpenSSL;
-    FIdSSLIOHandlerSocketOpenSSL.SSLOptions.Method:=sslvSSLv23;
-    //FIdSSLIOHandlerSocketOpenSSL.SSLOptions.Mode := sslmUnassigned;//sslmClient  ;
-    //FIdSSLIOHandlerSocketOpenSSL.SSLOptions.VerifyMode := [{sslvrfPeer}];
-    //FIdSSLIOHandlerSocketOpenSSL.SSLOptions.VerifyDepth := 0;
-    //FIdSSLIOHandlerSocketOpenSSL.SSLOptions.SSLVersions := [sslvSSLv2, sslvSSLv3, sslvTLSv1, sslvTLSv1_1, sslvTLSv1_2];
-
+    FIdSSLIOHandlerSocketOpenSSL.SSLOptions:= FSSLOptions;
   end;
   if EnableCompression then
   begin
@@ -137,6 +135,19 @@ begin
   finally
     FIdHttp.Free;
   end;
+end;
+
+constructor TbsIndyTransporter.Create(AOwner: TComponent);
+begin
+  inherited;
+  FSSLOptions:=TIdSSLOptions.Create;
+  FSSLOptions.Method:=sslvSSLv23;
+end;
+
+destructor TbsIndyTransporter.Destroy;
+begin
+  FSSLOptions.Free;
+  inherited;
 end;
 
 function TbsIndyTransporter.Execute(Request:TStream): TStream;
