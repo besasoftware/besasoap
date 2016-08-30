@@ -77,7 +77,7 @@ begin
   begin
     FIdSSLIOHandlerSocketOpenSSL:=TIdSSLIOHandlerSocketOpenSSL.Create(FIdHttp);
     FIdHttp.IOHandler :=FIdSSLIOHandlerSocketOpenSSL;
-    FIdSSLIOHandlerSocketOpenSSL.SSLOptions:= FSSLOptions;
+    FIdSSLIOHandlerSocketOpenSSL.SSLOptions.Assign(FSSLOptions);
   end;
   if EnableCompression then
   begin
