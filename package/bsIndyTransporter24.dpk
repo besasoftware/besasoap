@@ -1,7 +1,7 @@
-package bsSOAPClient22;
+package bsIndyTransporter24;
 
 {$R *.res}
-{$R 'bsSOAPClient.res'}
+{$R 'bsIndyTransporter.res'}
 {$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
 {$ALIGN 8}
 {$ASSERTIONS ON}
@@ -10,41 +10,34 @@ package bsSOAPClient22;
 {$EXTENDEDSYNTAX ON}
 {$IMPORTEDDATA ON}
 {$IOCHECKS ON}
-{$LOCALSYMBOLS ON}
+{$LOCALSYMBOLS OFF}
 {$LONGSTRINGS ON}
 {$OPENSTRINGS ON}
-{$OPTIMIZATION OFF}
+{$OPTIMIZATION ON}
 {$OVERFLOWCHECKS OFF}
 {$RANGECHECKS OFF}
-{$REFERENCEINFO ON}
+{$REFERENCEINFO OFF}
 {$SAFEDIVIDE OFF}
-{$STACKFRAMES ON}
+{$STACKFRAMES OFF}
 {$TYPEDADDRESS OFF}
 {$VARSTRINGCHECKS ON}
 {$WRITEABLECONST OFF}
 {$MINENUMSIZE 1}
 {$IMAGEBASE $400000}
-{$DEFINE DEBUG}
+{$DEFINE RELEASE}
 {$ENDIF IMPLICITBUILDING}
-{$DESCRIPTION 'BesaSoftware SOAP Client Component'}
+{$DESCRIPTION 'BesaSoftware SOAP Indy Http Transporter Component'}
 {$IMPLICITBUILD ON}
 
 requires
   rtl,
-  vcl,
-  xmlrtl;
+  bsSOAPClient24,
+  IndySystem,
+  IndyProtocols,
+  IndyCore;
 
 contains
-  bsAttribute,
-  bsAuthentication,
-  bsClasses,
-  bsConst,
-  bsNullable,
-  bsSerializer,
-  bsSOAPClient,
-  bsTransporter,
-  bsUtil,
-  bsSOAPClientReg;
+  bsIndyTransporterReg,
+  bsIndyTransporter;
 
 end.
-

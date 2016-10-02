@@ -1,4 +1,4 @@
-package bsSOAPClient22;
+package bsSOAPClient24;
 
 {$R *.res}
 {$R 'bsSOAPClient.res'}
