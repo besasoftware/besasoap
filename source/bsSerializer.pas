@@ -20,8 +20,8 @@ uses
 
 type
   TbsSerializer = class
-    procedure Serialize(Stream:TStream;Obj:TValue); virtual;abstract;
-    procedure Deserialize(Stream:TStream;var Obj: TValue); virtual; abstract;
+    procedure Serialize(AStream:TStream; AObj:TValue); virtual;abstract;
+    procedure Deserialize(AStream:TStream; var AObj: TValue); virtual; abstract;
   end;
 
   TbsXMLSerializer = class(TbsSerializer)
@@ -30,8 +30,9 @@ type
     FContext: TRttiContext;
     FType:PTypeInfo;
     FElementForm:TSchemaForm;
-    FtargetNamespace : string;
+    FNamespace : string;
     FStandalone:Boolean;
+    FXSIChecked:Boolean;
     procedure SetNodeNil(ANode:IXMLNode);
     function NodeIsNil(ANode:IXMLNode):Boolean;
     function AddChild(AParentNode:IXMLNode;ANodeName:string;
@@ -40,24 +41,24 @@ type
   public
     constructor Create;
     destructor Destroy;override;
-    class function StringToNative(AType:TRttiType; AValue:string): TValue;
-    class function NativeToString(AType:TRttiType; AValue:TValue): String;
-    procedure SerializeWithNode(ANodeName: String; aObj: TValue; ParentNode: IXMLNode);
-    procedure DeSerializeWithNode(ANodeName: String; var aObj: TValue; ParentNode: IXMLNode);
-    procedure SerializeToStream(Stream:TStream;Obj:TValue);
-    function SerializeToString(Obj:TValue):string;
-    function DeserializeFromString(AValue: string): TValue;
-    procedure Serialize(Stream:TStream;Obj:TValue); override;
-    procedure Deserialize(Stream:TStream;var Obj: TValue); override;
+    class function StringToValue(AType:TRttiType; AValue:string): TValue;
+    class function ValueToString(AType:TRttiType; AValue:TValue): String;
+    procedure SerializeWithNode(ANodeName: String; AObj: TValue; AParentNode: IXMLNode);
+    procedure DeSerializeWithNode(ANodeName: String; var aObj: TValue; AParentNode: IXMLNode);
+    procedure SerializeToStream(AStream:TStream; AObj:TValue);
+    function SerializeToString(AObj:TValue):string;
+    function DeserializeFromString(AValue: string; ATypeInfo: PTypeInfo=NIL): TValue;
+    procedure Serialize(AStream:TStream; AObj:TValue); override;
+    procedure Deserialize(AStream:TStream;var AObj: TValue); override;
     procedure SetType(AType:PTypeInfo);
     property ElementForm:TSchemaForm read FElementForm write FElementForm;
-    property targetNamespace : string read FtargetNamespace write FtargetNamespace;
+    property Namespace : string read FNamespace write FNamespace;
     property Standalone:Boolean read FStandalone write FStandalone;
   end;
 
 implementation
 
-uses Types, bsUtil, bsClasses,Variants;
+uses Types, bsUtil, bsClasses,Variants, StrUtils;
 
 
 function String2DateTime(AValue: String): TDateTime;
@@ -99,14 +100,16 @@ begin
   {$ENDIF}  // CONDITIONALEXPRESSIONS
 end; { DecimalSeparator }
 
-class function TbsXMLSerializer.StringToNative(AType: TRttiType; AValue: string) : TValue;
+class function TbsXMLSerializer.StringToValue(AType: TRttiType; AValue: string) : TValue;
 var
   ADateTime :TDateTime;
 begin
 
   case AType.TypeKind of
-    tkInteger: Result := StrToIntDef(AValue, 0);
-    tkChar: if(AValue.Length>0) then Result:=AValue.Chars[0];
+    tkInteger:
+      Result := StrToIntDef(AValue, 0);
+    tkChar:
+      if(AValue.Length>0) then Result:=AValue.Chars[0];
     tkEnumeration:
       begin
         if AType.Handle=TypeInfo(Boolean)then
@@ -134,37 +137,45 @@ begin
         else
           Result:=StrToFloatDef( StringReplace(AValue, DEFAULT_DECIMALSEPARATOR, DecimalSeparator, [rfReplaceAll]) , 0) ;
       end;
-    tkString: Result:=AValue;
+    tkString:
+      Result:=AValue;
     tkWChar:
       if(AValue.Length>0) then
         Result:={$IFNDEF NEXTGEN}WideChar{$ELSE}Char{$ENDIF}(AValue.Chars[0]);
 
-    tkLString: Result:=AValue;
-    tkWString: Result:={$IFNDEF NEXTGEN}WideString{$ELSE}String{$ENDIF}(AValue);
-    tkInt64: Result := StrToInt64Def(AValue, 0);
-    tkUString: Result:=UnicodeString(AValue);
+    tkLString:
+      Result:=AValue;
+    tkWString:
+      Result:={$IFNDEF NEXTGEN}WideString{$ELSE}String{$ENDIF}(AValue);
+    tkInt64:
+      Result := StrToInt64Def(AValue, 0);
+    tkUString:
+      Result:=UnicodeString(AValue);
     else
       Result:=AValue;
   end;
 
 end;
 
-procedure TbsXMLSerializer.Deserialize(Stream:TStream;var Obj: TValue);
+procedure TbsXMLSerializer.Deserialize(AStream:TStream;var AObj: TValue);
 var
-  xmldoc: IXMLDocument;
-  name,ns :string;
+  LXmlDoc: IXMLDocument;
+  LNodeName,ns :string;
 begin
-  xmldoc:=TXMLDocument.Create(nil);
-  xmldoc.Active:=TRUE;
+  LXmlDoc:=TXMLDocument.Create(nil);
+  LXmlDoc.Active:=TRUE;
   try
-    name:='';
-    Stream.Position:=0;
-    xmldoc.LoadFromStream(Stream);
-    Obj:=GetTypeData(PTypeInfo(FType))^.ClassType.Create;
-    TbsAttributeUtils.GetXMLRootAttribute(FContext,FContext.GetType(Obj.TypeInfo),name,ns);
-    DeserializeWithNode(name,Obj,xmldoc.DocumentElement);
+    LNodeName:='';
+    AStream.Position:=0;
+    LXmlDoc.LoadFromStream(AStream);
+    if FType=NIL
+    then
+      raise Exception.Create('You must define value type');
+    AObj:=GetTypeData(PTypeInfo(FType))^.ClassType.Create;
+    TbsAttributeUtils.GetXMLRootAttribute(FContext,FContext.GetType(AObj.TypeInfo), LNodeName, ns);
+    DeserializeWithNode(LNodeName, AObj, LXmlDoc.DocumentElement);
   finally
-    XMLDoc:=NIL;
+    LXmlDoc:=NIL;
   end;
 end;
 
@@ -188,7 +199,7 @@ begin
   end;
 end;
 
-class function TbsXMLSerializer.NativeToString(AType:TRttiType; AValue:TValue): String;
+class function TbsXMLSerializer.ValueToString(AType:TRttiType; AValue:TValue): String;
 var
   ADateTime :TDateTime;
 begin
@@ -225,52 +236,73 @@ begin
   Result:=VarToStr(ANode.GetAttributeNS('nil',XMLSchemaInstNameSpace))='true';
 end;
 
-procedure TbsXMLSerializer.Serialize(Stream: TStream; Obj: TValue);
+procedure TbsXMLSerializer.Serialize(AStream: TStream; AObj: TValue);
 begin
-  SerializeToStream(Stream,Obj);
+  SerializeToStream(AStream, AObj);
 end;
 
-procedure TbsXMLSerializer.SerializeToStream(Stream: TStream; Obj: TValue);
+procedure TbsXMLSerializer.SerializeToStream(AStream: TStream; AObj: TValue);
 var
-  xmldoc: IXMLDocument;
-  name,ns :string;
+  LXmlDoc: IXMLDocument;
+  LNodeName,ns :string;
+  LType: TRttiType;
 begin
-  xmldoc:=TXMLDocument.Create(NIL);
-  xmldoc.Active:=TRUE;
+  LXmlDoc:=TXMLDocument.Create(NIL);
+  LXmlDoc.Options := LXmlDoc.Options + [doNodeAutoIndent];
+  LXmlDoc.Active:=TRUE;
   try
-    name:='';
-    TbsAttributeUtils.GetXMLRootAttribute(FContext,FContext.GetType(Obj.TypeInfo),name,ns);
-    if (targetNamespace='')
-    then targetNamespace:=ns;
-    SerializeWithNode(name,Obj,xmldoc.GetDocumentNode);
-    xmldoc.SaveToStream(Stream);
-    Stream.Position:=0;
+    LNodeName:='';
+    LType:=FContext.GetType(AObj.TypeInfo);
+    TbsAttributeUtils.GetXMLRootAttribute(FContext,LType, LNodeName, ns);
+    if (FNamespace='') then FNamespace:=ns;
+    SerializeWithNode(LNodeName, AObj, LXmlDoc.GetDocumentNode);
+    LXmlDoc.SaveToStream(AStream);
+    AStream.Position:=0;
   finally
-    xmldoc:=NIL;
+    LXmlDoc:= NIL;
   end;
 end;
 
-function TbsXMLSerializer.SerializeToString(Obj: TValue): string;
-var
-  AStream: TStringStream;
-begin
-  AStream:=TStringStream.Create('');
-  SerializeToStream(AStream,Obj);
-  Result:=AStream.DataString;
-  FreeAndNil(AStream);
-end;
-
-function TbsXMLSerializer.DeserializeFromString(AValue: string): TValue;
+function TbsXMLSerializer.SerializeToString(AObj: TValue): string;
 var
   LStream: TStringStream;
 begin
-  LStream:=TStringStream.Create(AValue);
-  Deserialize(LStream,Result);
-  LStream.Free;
+  Result:='';
+  try
+    LStream:=TStringStream.Create('');
+    SerializeToStream(LStream, AObj);
+    Result:=LStream.DataString;
+  finally
+    FreeAndNil(LStream);
+  end;
+end;
+
+function TbsXMLSerializer.DeserializeFromString(AValue: string; ATypeInfo: PTypeInfo=NIL): TValue;
+var
+  LStream: TStringStream;
+begin
+  if ATypeInfo<>NIL
+  then
+    SetType(ATypeInfo);
+  try
+    LStream:=TStringStream.Create(AValue);
+    Deserialize(LStream, Result);
+  finally
+    LStream.Free;
+  end;
+
 end;
 
 procedure TbsXMLSerializer.SetNodeNil(ANode: IXMLNode);
 begin
+  if not FXSIChecked then
+  begin
+    if ANode.OwnerDocument.DocumentElement.FindNamespaceDecl(XMLSchemaInstNameSpace)=NIL
+    then
+      ANode.OwnerDocument.DocumentElement.DeclareNamespace(SXMLSchemaInstNameSpace99Pre,XMLSchemaInstNameSpace);
+    FXSIChecked:=True;
+  end;
+
   ANode.SetAttributeNS('nil',XMLSchemaInstNameSpace,'true');
 end;
 
@@ -279,23 +311,23 @@ begin
   FType:=AType;
 end;
 
-procedure TbsXMLSerializer.SerializeWithNode(ANodeName: String; aObj: TValue;
-  ParentNode: IXMLNode );
+procedure TbsXMLSerializer.SerializeWithNode(ANodeName: String; AObj: TValue;
+  AParentNode: IXMLNode);
 var
-  aType: TRttiType;
-  aField: TRttiField;
-  aRecord: TRttiRecordType;
-  aValue: TValue;
-  I: Integer;
-  NodeName,NamespaceURI: String;
-  AForm : TSchemaForm;
-  pNode, node: IXMLNode;
-  NodeType: TNodeType;
-  AsElement: Boolean;
-  LNamespaceAdded:Boolean;
-  aNodeValue:String;
-  sPrefix{,sNamespace}: string;
-  aFieldTypeKind :TTypeKind;
+  LType         : TRttiType;
+  LField        : TRttiField;
+  aRecord       : TRttiRecordType;
+  LValue        : TValue;
+  I             : Integer;
+  LNodeName,
+  LNamespaceURI : String;
+  LSchemaForm   : TSchemaForm;
+  LChildNode,
+  LFieldNode    : IXMLNode;
+  LNodeType     : TNodeType;
+  AsElement     : Boolean;
+  LNodeValue    : string;
+  LNSPrefix     : string;
 
   function ReadNullableRecord(anObj: TValue): TValue;
   begin
@@ -303,229 +335,262 @@ var
   end;
 
 begin
-  aType := FContext.GetType(aObj.TypeInfo);
+  LType        := FContext.GetType(aObj.TypeInfo);
+  LNodeName    := LType.Name;
+  LSchemaForm  := FElementForm;//sfUnqualified;
+  LNamespaceURI:= FNamespace;
 
-  AForm:=FElementForm;//sfUnqualified;
+  if Length(ANodeName) > 0
+  then
+    LNodeName := ANodeName;
 
-  NodeName := aType.Name;
-  NamespaceURI:=targetNamespace;
+  TbsAttributeUtils.GetXMLElementAttribute(FContext, LType, LNodeName, LSchemaForm, LNamespaceURI);
+  TbsAttributeUtils.GetXMLFormAttribute(FContext, LType, LSchemaForm);
 
-  if Length(ANodeName) > 0 then
-    NodeName := ANodeName;
-
-  TbsAttributeUtils.GetXMLElementAttribute(FContext,aType,NodeName,AForm,NamespaceURI);
-  TbsAttributeUtils.GetXMLFormAttribute(FContext,aType,AForm);
-
-  if aObj.IsObject then
-  begin
-    if (aObj.AsObject =nil) then
+  if (AObj.IsObject)
+  then
     begin
-      pNode:= AddChild(ParentNode,NodeName,AForm);
-      SetNodeNil(pNode);
-      Exit;
+      if (AObj.AsObject = NIL)
+      then
+        begin
+          LChildNode:= AddChild(AParentNode, LNodeName, LSchemaForm);
+          SetNodeNil(LChildNode);
+          Exit;
+        end;
     end;
-  end;
 
-  if aType.IsInstance then // Class
+  if LType.IsInstance then // Class
   begin
-    if TbsAttributeUtils.GetXmlNamespaceAttribute(FContext,aType,sPrefix,NamespaceURI,AForm)
+    // Check Namespace ...
+    if TbsAttributeUtils.GetXmlNamespaceAttribute(FContext, LType, LNSPrefix, LNamespaceURI, LSchemaForm)
     then
       begin
-        sPrefix:=ParentNode.OwnerDocument.GeneratePrefix(ParentNode);
+        LNSPrefix:= AParentNode.OwnerDocument.GeneratePrefix(AParentNode);
 
-        if (Length(sPrefix) = 0) or (AForm=sfQualified) then
-        begin
-          pNode.DeclareNamespace(sPrefix, NamespaceURI);
-        end;
+        if (Length(LNSPrefix) = 0) or (LSchemaForm=sfQualified)
+        then
+          LChildNode.DeclareNamespace(LNSPrefix, LNamespaceURI);
 
-        if Length(NamespaceURI) > 0 then
-        begin
-          pNode.DeclareNamespace(sPrefix, NamespaceURI);
-          LNamespaceAdded:=True;
-        end;
+        if Length(LNamespaceURI) > 0
+        then
+          LChildNode.DeclareNamespace(LNSPrefix, LNamespaceURI);
       end;
 
-    pNode:=AddChild(ParentNode,NodeName,AForm);
-
+    LChildNode:=AddChild(AParentNode, LNodeName, LSchemaForm);
   end
-  else if aType.TypeKind = tkRecord then // Record
+  else if LType.TypeKind = tkRecord then // Record
   begin
 
-    if TbsAttributeUtils.GetXmlNamespaceAttribute(FContext,aType,sPrefix,NamespaceURI,AForm)then
+    if TbsAttributeUtils.GetXmlNamespaceAttribute(FContext, LType, LNSPrefix, LNamespaceURI,LSchemaForm)then
     begin
-      if Length(NamespaceURI) > 0 then
-        begin
-          pNode:=AddChild(ParentNode,NodeName,AForm, NamespaceURI,sPrefix);
-        end;
-    end else
-        pNode:=ParentNode.AddChild(NodeName);
+      if Length(LNamespaceURI) > 0
+      then
+        LChildNode:= AddChild(AParentNode, LNodeName, LSchemaForm, LNamespaceURI, LNSPrefix);
+    end
+    else
+      LChildNode:= AParentNode.AddChild(LNodeName);
 
-    aValue := ReadNullableRecord(aObj);
-    aRecord:= aType.AsRecord;
-    pNode.NodeValue :=  NativeToString(aRecord.GetField('fValue').FieldType,aValue);
+    LValue := ReadNullableRecord(aObj);
+    aRecord:= LType.AsRecord;
+    LChildNode.NodeValue :=  ValueToString(aRecord.GetField('fValue').FieldType, LValue);
     Exit;
-  end else if aType.TypeKind in [tkInteger, tkInt64, tkChar, tkEnumeration,
-                                 tkFloat, tkString, tkWChar, tkLString,
-                                 tkWString, tkVariant, tkUString, tkSet]
+  end
+  else if LType.TypeKind in [tkInteger, tkInt64, tkChar, tkEnumeration,
+                             tkFloat, tkString, tkWChar, tkLString,
+                             tkWString, tkVariant, tkUString, tkSet]
   then
-  begin
-    pNode:=AddChild(ParentNode,NodeName,AForm);
-    pNode.NodeValue:= NativeToString(aType,aObj);
-    Exit;
-  end
-  else
-    pNode := ParentNode;
-
-
-    if TbsAttributeUtils.GetXmlNamespaceAttribute(FContext,aType,sPrefix,NamespaceURI,AForm)then
     begin
-      if Length(NamespaceURI) > 0 then
-        pNode.DeclareNamespace(sPrefix, NamespaceURI);
+      LChildNode:= AddChild(AParentNode, LNodeName, LSchemaForm);
+      LChildNode.NodeValue:= ValueToString(LType, AObj);
+      Exit;
+    end
+  else
+    LChildNode := AParentNode;
+
+  if TbsAttributeUtils.GetXmlNamespaceAttribute(FContext, LType, LNSPrefix, LNamespaceURI, LSchemaForm)
+  then
+    begin
+      if Length(LNamespaceURI) > 0
+      then
+        LChildNode.DeclareNamespace(LNSPrefix, LNamespaceURI);
     end;
 
 
-  for aField in aType.GetFields do begin
+  // Class Fields...
+  for LField in LType.GetFields do
+  begin
     // Only Public & Published
-    if not(aField.Visibility in [mvPublic, mvPublished]) then
+    if not(LField.Visibility in [mvPublic, mvPublished])
+    then
       Continue;
 
-   Assert(aField.FieldType<>NIL,'aField.FieldType is NIL, reason may be Nullable(Type) like generic records.');
-   aFieldTypeKind:=aField.FieldType.TypeKind;
+    Assert(LField.FieldType<>NIL,'aField.FieldType is NIL, reason may be Nullable(Type) like generic records.');
+    LNodeValue    := '';
 
-    case aFieldTypeKind of
+    case LField.FieldType.TypeKind of
       tkUnknown:
         begin
 
         end;
-      tkInteger, tkInt64, tkChar, tkEnumeration, tkFloat,
-      tkString, tkWChar, tkLString, tkWString, tkVariant, tkUString,
+      tkInteger,
+      tkInt64,
+      tkChar,
+      tkEnumeration,
+      tkFloat,
+      tkString,
+      tkWChar,
+      tkLString,
+      tkWString,
+      tkVariant,
+      tkUString,
       tkSet:
         begin
-          NodeName := aField.Name;
-          NamespaceURI:=PNode.NamespaceURI;
-          // Default
-          NodeType := TNodeType.ntElement;
+          LNodeName    := LField.Name;
+          LNamespaceURI:= LChildNode.NamespaceURI;
+          LNodeType    := TNodeType.ntElement; // Default
 
-          if TbsAttributeUtils.GetXmlAttributeAttribute(FContext,aField,NodeName,NamespaceURI) then
-            NodeType := ntAttribute;
-          TbsAttributeUtils.GetXMLElementAttribute(FContext,aField,NodeName,AForm,NamespaceURI);
-          TbsAttributeUtils.GetXMLFormAttribute(FContext,aField,AForm);
+          if TbsAttributeUtils.GetXmlAttributeAttribute(FContext, LField, LNodeName, LNamespaceURI)
+          then
+            LNodeType := ntAttribute;
 
-          if TbsAttributeUtils.HasAttribute(FContext,aField,XmlTextAttribute) then
-              NodeType := ntText;
+          TbsAttributeUtils.GetXMLElementAttribute(FContext, LField, LNodeName, LSchemaForm, LNamespaceURI);
+          TbsAttributeUtils.GetXMLFormAttribute(FContext, LField, LSchemaForm);
 
+          if TbsAttributeUtils.HasAttribute(FContext, LField, XmlTextAttribute)
+          then
+            LNodeType := ntText;
 
-          aNodeValue:= NativeToString(aField.FieldType,aField.GetValue(aObj.AsObject));
+          LNodeValue:= ValueToString(LField.FieldType, LField.GetValue(AObj.AsObject));
 
-          if NodeType = ntElement then
+          if LNodeType = ntElement then
           begin
-
-            node := AddChild(pNode,NodeName, AForm, NamespaceURI);
-            node.NodeValue := aNodeValue;
+            LFieldNode := AddChild(LChildNode, LNodeName, LSchemaForm, LNamespaceURI);
+            LFieldNode.NodeValue := LNodeValue;
           end
-          else if NodeType = ntAttribute then
+          else if LNodeType = ntAttribute then
           begin
-            if NamespaceURI<>targetNamespace then pNode.SetAttributeNS(NodeName,NamespaceURI,aNodeValue)
-            else pNode.Attributes[NodeName] := aNodeValue;
+            if LNamespaceURI<>FNamespace
+            then
+              LChildNode.SetAttributeNS(LNodeName, LNamespaceURI, LNodeValue)
+            else
+              LChildNode.Attributes[LNodeName]:= LNodeValue;
           end
-          else if NodeType = ntText then
+          else if LNodeType = ntText then
           begin
-            pNode.NodeValue := aNodeValue;
+            LChildNode.NodeValue:= LNodeValue;
           end;
         end;
 
       tkClass:
         begin
-           if aField.FieldType.IsInstance then begin
-           NodeName := aField.Name;
-
-           if (aField.GetValue(aObj.AsObject).AsObject =nil) then
+           if LField.FieldType.IsInstance then
            begin
+             LNodeName:= LField.Name;
 
-              SetNodeNil(AddChild(pNode,NodeName,AForm));
-
-
-           end else
-           begin
-              SerializeWithNode(NodeName,aField.GetValue(aObj.AsObject).AsObject,pNode);
-           end;
+             if (LField.GetValue(aObj.AsObject).AsObject = NIL)
+             then
+                SetNodeNil( AddChild(LChildNode, LNodeName, LSchemaForm) )
+             else
+                SerializeWithNode(LNodeName, LField.GetValue(AObj.AsObject).AsObject, LChildNode);
            end;
         end;
-      // tkMethod: ;
+
       tkArray:
         begin
 
         end;
       tkDynArray:
         begin
-          NodeName := aField.Name;
-
+          LNodeName := LField.Name;
           AsElement := False;
 
-          if TbsAttributeUtils.GetXMLElementAttribute(FContext,aField,NodeName,AForm,NamespaceURI) then
+          if TbsAttributeUtils.GetXMLElementAttribute(FContext, LField, LNodeName, LSchemaForm, LNamespaceURI)
+          then
             AsElement := True;
 
-          TbsAttributeUtils.GetXMLFormAttribute(FContext,aField,AForm);
+          TbsAttributeUtils.GetXMLFormAttribute(FContext, LField, LSchemaForm);
 
           if not AsElement then
           begin
-            TbsAttributeUtils.GetXMLArrayAttribute(FContext,aField,NodeName);
-            node := AddChild(pNode,NodeName,AForm);
-            // ArrayItem
-            NodeName := 'item';
-            TbsAttributeUtils.GetXMLArrayItemAttribute(FContext,aField,NodeName);
+            TbsAttributeUtils.GetXMLArrayAttribute(FContext, LField, LNodeName);
+            LFieldNode:= AddChild(LChildNode, LNodeName, LSchemaForm);
+            LNodeName := 'item'; // ArrayItem
+            TbsAttributeUtils.GetXMLArrayItemAttribute(FContext, LField, LNodeName);
           end
           else
-          begin
-            node := pNode;
-          end;
+            LFieldNode := LChildNode;
 
-          aValue := aField.GetValue(aObj.AsObject);
-          // LTypeKind := TRttiDynamicArrayType( aField.FieldType ).ElementType.TypeKind;
-          for I := 0 to aValue.GetArrayLength - 1 do
+          LValue := LField.GetValue(AObj.AsObject);
+
+          for I := 0 to LValue.GetArrayLength - 1 do
           begin
-            SerializeWithNode(NodeName, aValue.GetArrayElement(I), node);
+            SerializeWithNode(LNodeName, LValue.GetArrayElement(I), LFieldNode);
           end;
 
         end;
 
       tkRecord:
         begin
-          NodeName := aField.Name;
-          // Default
-          NodeType := TNodeType.ntElement;
+          LNodeName := LField.Name;
+          LNodeType := TNodeType.ntElement; // Default
 
-          TbsAttributeUtils.GetXmlAttributeAttribute(FContext,aField,NodeName,NamespaceURI);
-          TbsAttributeUtils.GetXMLElementAttribute(FContext,aField,NodeName,AForm,NamespaceURI);
-          TbsAttributeUtils.GetXMLFormAttribute(FContext,aField,AForm);
+          TbsAttributeUtils.GetXmlAttributeAttribute(FContext, LField, LNodeName, LNamespaceURI);
+          TbsAttributeUtils.GetXMLElementAttribute(FContext, LField, LNodeName, LSchemaForm, LNamespaceURI);
+          TbsAttributeUtils.GetXMLFormAttribute(FContext, LField, LSchemaForm);
+          //Nullable type...
+          if AnsiStartsText('Nullable<',LField.GetValue(aObj.AsObject).TypeInfo^.Name)
+            then
+              begin
+                LValue     := ReadNullableRecord( LField.GetValue(aObj.AsObject) );
+                aRecord    := LField.FieldType.AsRecord;
+                LNodeValue := ValueToString(aRecord.GetField('fValue').FieldType, LValue);
 
-          aValue := ReadNullableRecord(aField.GetValue(aObj.AsObject));
-          aRecord:= aField.FieldType.AsRecord;
-          aNodeValue := NativeToString(aRecord.GetField('fValue').FieldType,aValue);
+                if (LNodeType = ntElement) then
+                begin
+                  LFieldNode:= AddChild(LChildNode, LNodeName, LSchemaForm, LNamespaceURI);
+                  if (LValue.IsEmpty) then
+                    LFieldNode.NodeValue := ''
+                  else
+                    LFieldNode.NodeValue := LNodeValue;
+                end
+                else if LNodeType = ntAttribute then
+                begin
+                  if (LValue.IsEmpty) then
+                    LChildNode.Attributes[LNodeName] := ''
+                  else
+                    LChildNode.Attributes[LNodeName] := LNodeValue;
+                end;
 
-          if (NodeType = ntElement) then
-          begin
-            node:=AddChild(pNode,NodeName,aForm,NamespaceURI);
-            if (aValue.IsEmpty) then
-              node.NodeValue:=''
+                if (LValue.IsEmpty) and (LNodeType = ntElement)
+                then
+                  SetNodeNil(LFieldNode);
+              end
             else
-              node.NodeValue := aNodeValue;
-          end
-          else if NodeType = ntAttribute then
-          begin
-            if (aValue.IsEmpty) then
-              pNode.Attributes[NodeName]:=''
-            else
-              pNode.Attributes[NodeName] := aNodeValue;
-          end;
+              begin
+                {
+                if (LNodeType = ntElement) then
+                begin
+                  LFieldNode:= AddChild(LChildNode, LNodeName, LSchemaForm, LNamespaceURI);
+                  if (LValue.IsEmpty) then
+                    LFieldNode.NodeValue := ''
+                  else
+                    LFieldNode.NodeValue := LNodeValue;
+                end
+                else if LNodeType = ntAttribute then
+                begin
+                  if (LValue.IsEmpty) then
+                    LChildNode.Attributes[LNodeName] := ''
+                  else
+                    LChildNode.Attributes[LNodeName] := LNodeValue;
+                end;
+                }
+              end;
 
-          if (aValue.IsEmpty) and (NodeType = ntElement)then
-          SetNodeNil(node);
 
 
         end;
       // tkInterface: ;
-
+      // tkMethod: ;
       // tkClassRef: ;
       // tkPointer: ;
       // tkProcedure: ;
@@ -534,18 +599,15 @@ begin
 
 end;
 
-
-
-
 function TbsXMLSerializer.AddChild(AParentNode: IXMLNode;
   ANodeName: string; AForm:TSchemaForm; ANamespace:string='@'; APrefix:string=''): IXMLNode;
 var
-  LPrefix:string;
-  LGenPrefix: Boolean;
-  LNameSpace:String;
+  LPrefix    : string;
+  LGenPrefix : Boolean;
+  LNameSpace : String;
 begin
-  LNameSpace:=ANamespace;
-  if ANameSpace='@' then LNamespace:=targetNamespace;
+  LNameSpace:= ANamespace;
+  if ANameSpace='@' then LNamespace:= FNamespace;
 
   {if not FDefNSAdded
   then
@@ -556,23 +618,25 @@ begin
 
       FDefNSAdded:=True;
     end
-  else} if (AForm in[sfNone,sfQualified])
+  else} if (AForm in [sfNone, sfQualified])
   then
     begin
       if Length(APrefix)>0
       then
         begin
-          Result:=AParentNode.AddChild(ANodeName,LNamespace);
+          Result:=AParentNode.AddChild(ANodeName, LNamespace);
           Result.DeclareNamespace(APrefix, LNamespace);
         end
       else
         begin
-          Result:=AParentNode.AddChild(ANodeName,LNamespace,True);
+          Result:=AParentNode.AddChild(ANodeName, LNamespace, True);
         end;
     end
-  else if (AForm=sfUnqualified) then
+  else if (AForm=sfUnqualified)
+  then
     begin
-      if (targetNamespace<>LNamespace) then
+      if (FNamespace<>LNamespace)
+      then
         Result:=AParentNode.AddChild(ANodeName,LNamespace)
       else
         begin
@@ -585,62 +649,64 @@ end;
 
 constructor TbsXMLSerializer.Create;
 begin
-  FContext:= TRttiContext.Create;
-  FElementForm:=sfUnqualified;
-  FStandalone:=True;
+  FContext    := TRttiContext.Create;
+  FElementForm:= sfUnqualified;
+  FStandalone := True;
+  FType       := NIL;
+  FXSIChecked := False;
 end;
 
-procedure TbsXMLSerializer.DeSerializeWithNode(ANodeName: String; var aObj: TValue;
-  ParentNode: IXMLNode);
+procedure TbsXMLSerializer.DeSerializeWithNode(ANodeName: String; var AObj: TValue;
+  AParentNode: IXMLNode);
 var
-  aContext: TRttiContext;
-  aAttribute : TCustomAttribute;
-  aType: TRttiType;
-  aField : TRttiField;
-  aRecord : TRttiRecordType;
-  NodeName : String;
-  NamespaceURI : String;
-  NodeType : TNodeType;
-  aNode,pNode : IXMLNode;
-  aValue         : TValue;
-  AsElement: Boolean;
-  Form : TSchemaForm;
+  LAttribute    : TCustomAttribute;
+  LType         : TRttiType;
+  LField        : TRttiField;
+  LRecord       : TRttiRecordType;
+  LNodeName     : String;
+  LNamespaceURI : String;
+  LNodeType     : TNodeType;
+  LChildNode,
+  pNode         : IXMLNode;
+  LValue        : TValue;
+  AsElement     : Boolean;
+  LSchemaForm   : TSchemaForm;
 
-  function XML2ObjNative(NativeNode:IXMLNode; NativeType:TRttiType;NativeNodeName:String):TValue;
+  function XML2ObjNative(NativeNode:IXMLNode; NativeType:TRttiType; NativeNodeName:String): TValue;
   var
     NativeNodeType : TNodeType;
     NativeNS :String;
     NativeChildNode:IXmlNode;
   begin
-    NamespaceURI:='';
+    LNamespaceURI:='';
     // Default
     NativeNodeType := TNodeType.ntElement;
 
-    TbsAttributeUtils.GetXmlAttributeAttribute(aContext,NativeType,NativeNodeName,NativeNS);
-    TbsAttributeUtils.GetXMLElementAttribute(aContext,NativeType,NativeNodeName,Form,NativeNS);
-    TbsAttributeUtils.GetXMLFormAttribute(aContext,NativeType,Form);
-    if TbsAttributeUtils.HasAttribute(aContext,NativeType,XmlTextAttribute) then
-      NodeType := ntText;
+    TbsAttributeUtils.GetXmlAttributeAttribute(FContext,NativeType,NativeNodeName,NativeNS);
+    TbsAttributeUtils.GetXMLElementAttribute(FContext,NativeType,NativeNodeName,LSchemaForm,NativeNS);
+    TbsAttributeUtils.GetXMLFormAttribute(FContext,NativeType,LSchemaForm);
+    if TbsAttributeUtils.HasAttribute(FContext,NativeType,XmlTextAttribute) then
+      LNodeType := ntText;
 
       if NativeNode = nil then Exit;
 
       if NativeNodeType = ntElement then
       begin
-        if NodeIsNil(NativeNode) then aValue:=nil;
-        Result:= StringToNative(NativeType,NativeNode.NodeValue);
+        if NodeIsNil(NativeNode) then LValue:=nil;
+        Result:= StringToValue(NativeType,NativeNode.NodeValue);
       end
       else if NativeNodeType = ntAttribute then
       begin
         NativeChildNode :=  NativeNode.AttributeNodes.FindNode(NativeNodeName);
         //if aNode.IsNil then aValue:=nil;
         //aValue:= NativeChildNode.NodeValue;
-        Result:= StringToNative(NativeType,NativeChildNode.NodeValue);
+        Result:= StringToValue(NativeType,NativeChildNode.NodeValue);
       end
       else if NativeNodeType = ntText then
       begin
         //if aNode.IsNil then aValue:=nil;
         //aValue:= NativeNode.NodeValue;
-        Result:= StringToNative(NativeType,NativeNode.NodeValue);
+        Result:= StringToValue(NativeType,NativeNode.NodeValue);
       end;
   end;
 
@@ -682,7 +748,7 @@ var
 
         S:=Base64Decode(ArrayNode.NodeValue);
         TB:=TEncoding.UTF8{ANSI}.GetBytes(S);
-        TValue.Make(@TB,TRttiDynamicArrayType(aType).Handle,Result);
+        TValue.Make(@TB,TRttiDynamicArrayType(LType).Handle,Result);
     end else
     begin
       SetLength(ArrayValue,ArrayLen);
@@ -707,160 +773,182 @@ var
   end;
 
 begin
-  aType :=aContext.GetType(aObj.TypeInfo);
+  LType:= FContext.GetType(AObj.TypeInfo);
 
-
-  if not aObj.IsObject then
+  if AObj.IsObject then
   begin
-    case aType.TypeKind of
-      tkInteger, tkChar, tkFloat, tkString, tkWChar, tkLString,
-      tkWString, tkUString, tkInt64, tkVariant, tkEnumeration :
-
-        aObj:= XML2ObjNative(ParentNode,aType,ANodeName);
+    if (aObj.AsObject =nil) then
+    begin
+      aObj:=LType.AsInstance.MetaclassType.Create;
+    end;
+  end
+  else
+  begin
+    case LType.TypeKind of
+      //tkSet: ;
+      //tkClass: ;
+      //tkArray: ;
+      tkInteger,
+      tkChar,
+      tkFloat,
+      tkString,
+      tkWChar,
+      tkLString,
+      tkWString,
+      tkUString,
+      tkInt64,
+      tkVariant,
+      tkEnumeration :
+        AObj:= XML2ObjNative(AParentNode, LType, ANodeName);
 
       tkDynArray:
         begin
           AsElement:=False;
 
-          if TbsAttributeUtils.GetXMLElementAttribute(aContext,aType,NodeName,Form,NamespaceURI)
+          if TbsAttributeUtils.GetXMLElementAttribute(FContext, LType, LNodeName, LSchemaForm, LNamespaceURI)
           then
             AsElement := True;
-          TbsAttributeUtils.GetXMLFormAttribute(aContext,aType,Form);
+          TbsAttributeUtils.GetXMLFormAttribute(FContext,LType,LSchemaForm);
 
           if not AsElement then
           begin
-            TbsAttributeUtils.GetXMLArrayAttribute(aContext,aType,NodeName);
+            TbsAttributeUtils.GetXMLArrayAttribute(FContext,LType,LNodeName);
             // ArrayItem
-            NodeName := 'item';
-            TbsAttributeUtils.GetXMLArrayItemAttribute(aContext,aType,NodeName);
+            LNodeName := 'item';
+            TbsAttributeUtils.GetXMLArrayItemAttribute(FContext,LType,LNodeName);
           end;
 
-          aObj:=XML2ObjDynArray(ParentNode, aType,AsElement);
+          AObj:=XML2ObjDynArray(AParentNode, LType,AsElement);
 
         end;
-      //tkSet: ;
-      //tkClass: ;
-      //tkArray: ;
-      //tkRecord: ;
+
       tkRecord:
 
-
         begin
-          NodeName := ANodeName;
-          NodeType := TNodeType.ntElement;
+          LNodeName := ANodeName;
+          LNodeType := TNodeType.ntElement;
 
-          TbsAttributeUtils.GetXmlAttributeAttribute(aContext, aType, NodeName, NamespaceURI);
-          TbsAttributeUtils.GetXmlElementAttribute(aContext, aType, NodeName, Form, NamespaceURI);
+          TbsAttributeUtils.GetXmlAttributeAttribute(FContext, LType, LNodeName, LNamespaceURI);
+          TbsAttributeUtils.GetXmlElementAttribute(FContext, LType, LNodeName, LSchemaForm, LNamespaceURI);
 
-          // Type Casting
-          //TValue.Make(nil, aField.FieldType.Handle,aValue);
-          aValue:=aObj;//ReadNullableRecord(aObj);
-          aRecord:=aType.AsRecord;
+          LValue := AObj;
+          LRecord:= LType.AsRecord;
 
-          if (NodeType = ntElement) then
+          if (LNodeType = ntElement) then
           begin
-            aNode := ParentNode;//FindElementNode(ParentNode,NodeName);
-            if   NodeIsNil( aNode)
+            LChildNode := AParentNode;
+            if   NodeIsNil( LChildNode)
             then
-              aValue:=nil
+              LValue:=nil
             else
-              TrySetUnderlyingValue(aValue, StringToNative(aRecord.GetField('fValue').FieldType,aNode.NodeValue));
-
+              TrySetUnderlyingValue(LValue, StringToValue(LRecord.GetField('fValue').FieldType,LChildNode.NodeValue));
           end
-          else if NodeType = ntAttribute then
+          else if LNodeType = ntAttribute then
           begin
-            aNode := pNode.AttributeNodes.FindNode(NodeName);
-            TrySetUnderlyingValue(aValue, StringToNative(aRecord.GetField('fValue').FieldType,aNode.NodeValue));
+            LChildNode := pNode.AttributeNodes.FindNode(LNodeName);
+            TrySetUnderlyingValue(LValue, StringToValue(LRecord.GetField('fValue').FieldType,LChildNode.NodeValue));
           end;
 
         end;
 
     end;
 
-  end else
+  end;
 
-    if (aObj.AsObject =nil) then begin
-      aObj:=aType.AsInstance.MetaclassType.Create;
-    end;
 
-  for aAttribute in aType.GetAttributes do
-    if aAttribute is XmlReturnNameAttribute then
+
+  for LAttribute in LType.GetAttributes do
+    if LAttribute is XmlReturnNameAttribute then
     begin
-      if Length(XmlReturnNameAttribute(aAttribute).ReturnName) > 0 then
-        NodeName := XmlReturnNameAttribute(aAttribute).ReturnName;
-        //NamespaceURI:=XmlElementAttribute(aAttribute).NamespaceURI;
+      if Length(XmlReturnNameAttribute(LAttribute).ReturnName) > 0
+      then
+        LNodeName:= XmlReturnNameAttribute(LAttribute).ReturnName;
     end;
 
-    pNode:=ParentNode;
+    pNode:=AParentNode;
 
-  for aField in aType.GetFields do
+  for LField in LType.GetFields do
   begin
-    if not(aField.Visibility in [mvPublic, mvPublished]) then
+    if not(LField.Visibility in [mvPublic, mvPublished]) then
       Continue;
 
-    case aField.FieldType.TypeKind of
+    case LField.FieldType.TypeKind of
       //tkUnknown: ;
-      tkInteger, tkInt64, tkChar, tkEnumeration, tkFloat, tkString, tkWChar,
-        tkLString, tkWString, tkVariant, tkUString, tkSet:
+      //tkSet: ;
+      tkInteger,
+      tkInt64,
+      tkChar,
+      tkEnumeration,
+      tkFloat,
+      tkString,
+      tkWChar,
+      tkLString,
+      tkWString,
+      tkVariant,
+      tkUString,
+      tkSet:
         begin
-          NodeName := aField.Name;
-          NamespaceURI:='';
-          NodeType := TNodeType.ntElement;
+          LNodeName    := LField.Name;
+          LNamespaceURI:= '';
+          LNodeType    := TNodeType.ntElement;
 
-          if TbsAttributeUtils.GetXmlAttributeAttribute(aContext,aField,NodeName,NamespaceURI) then
-          NodeType := ntAttribute;
+          if TbsAttributeUtils.GetXmlAttributeAttribute(FContext,LField,LNodeName,LNamespaceURI)
+          then
+            LNodeType := ntAttribute;
 
-          if TbsAttributeUtils.GetXmlElementAttribute(aContext,aField,NodeName,Form,NamespaceURI) then
-          NodeType := ntElement;
+          if TbsAttributeUtils.GetXmlElementAttribute(FContext, LField, LNodeName, LSchemaForm, LNamespaceURI)
+          then
+            LNodeType := ntElement;
 
-          if TbsAttributeUtils.HasAttribute(aContext,aField,XmlTextAttribute) then
-          NodeType := ntText;
+          if TbsAttributeUtils.HasAttribute(FContext,LField,XmlTextAttribute)
+          then
+            LNodeType := ntText;
 
-          if NodeType = ntElement then
+          if LNodeType = ntElement then
           begin
-            aNode := FindElementNode(pNode,NodeName);
-            if aNode=nil then aValue:=nil
+            LChildNode := FindElementNode(pNode,LNodeName);
+            if LChildNode=NIL
+            then
+              LValue:=NIL
             else
               begin
-                aValue:= StringToNative(aField.FieldType, aNode.NodeValue);
-                if NodeIsNil(aNode) then aValue:=nil;
+                LValue:= StringToValue(LField.FieldType, LChildNode.NodeValue);
+                if NodeIsNil(LChildNode) then LValue:=nil;
               end;
 
-            aField.SetValue(aObj.AsObject,aValue);
+            LField.SetValue(aObj.AsObject,LValue);
           end
-          else if NodeType = ntAttribute then
+          else if LNodeType = ntAttribute then
           begin
-            aNode := pNode.AttributeNodes.FindNode(NodeName);
-            if aNode=nil then aValue:=nil
+            LChildNode := pNode.AttributeNodes.FindNode(LNodeName);
+            if LChildNode=nil then LValue:=nil
             else
-            aValue:= StringToNative(aField.FieldType,aNode.NodeValue);
-            aField.SetValue(aObj.AsObject,aValue);
+            LValue:= StringToValue(LField.FieldType, LChildNode.NodeValue);
+            LField.SetValue(aObj.AsObject,LValue);
           end
-          else if NodeType = ntText then
+          else if LNodeType = ntText then
           begin
-            aValue:= StringToNative(aField.FieldType,aNode.NodeValue);
-            aField.SetValue(aObj.AsObject,aValue);
+            LValue:= StringToValue(LField.FieldType, LChildNode.NodeValue);
+            LField.SetValue(aObj.AsObject,LValue);
           end;
         end;
 
-
-      //tkSet: ;
       tkClass:
         begin
-          NodeName := aField.Name;
+          LNodeName := LField.Name;
 
-          TbsAttributeUtils.GetXMLElementAttribute(aContext,aField,NodeName,Form,NamespaceURI);
+          TbsAttributeUtils.GetXMLElementAttribute(FContext,LField,LNodeName,LSchemaForm,LNamespaceURI);
 
-          aNode := FindElementNode(pNode,NodeName);
-          if aNode=nil then
-            aValue:=nil
-          else if NodeIsNil(aNode) then
-            aValue:=nil
+          LChildNode := FindElementNode(pNode,LNodeName);
+          if LChildNode=nil then
+            LValue:=nil
+          else if NodeIsNil(LChildNode) then
+            LValue:=nil
           else
           begin
-            aValue:= aField.GetValue(aObj.AsObject);
-            DeSerializeWithNode(NodeName, aValue, aNode);
-            aField.SetValue(aObj.AsObject, aValue);
+            LValue:= LField.GetValue(aObj.AsObject);
+            DeSerializeWithNode(LNodeName, LValue, LChildNode);
+            LField.SetValue(aObj.AsObject, LValue);
           end;
 
         end;
@@ -869,52 +957,54 @@ begin
 
       tkDynArray:
         begin
-          NodeName := aField.Name;
+          LNodeName := LField.Name;
           AsElement := False;
 
-          if TbsAttributeUtils.GetXMLElementAttribute(aContext,aField,NodeName,Form,NamespaceURI) then
+          if TbsAttributeUtils.GetXMLElementAttribute(FContext,LField,LNodeName,LSchemaForm,LNamespaceURI) then
               AsElement := True;
 
-          TbsAttributeUtils.GetXMLFormAttribute(aContext,aField,Form);
+          TbsAttributeUtils.GetXMLFormAttribute(FContext,LField,LSchemaForm);
 
          if not AsElement then
           begin
-            TbsAttributeUtils.GetXMLArrayAttribute(aContext,aField,NodeName);
-            NodeName := 'item';
-            TbsAttributeUtils.GetXMLArrayItemAttribute(aContext,aField,NodeName);
+            TbsAttributeUtils.GetXMLArrayAttribute(FContext, LField, LNodeName);
+            LNodeName := 'item';
+            TbsAttributeUtils.GetXMLArrayItemAttribute(FContext, LField, LNodeName);
           end;
 
-          aNode := FindElementNode( pNode,NodeName);
-          if aNode=nil then Continue;
-          aValue:=XML2ObjDynArray(aNode, aField.FieldType,AsElement);
-          aField.SetValue(aObj.AsObject,aValue);
+          LChildNode := FindElementNode( pNode,LNodeName);
+          if LChildNode=nil then Continue;
+          LValue:=XML2ObjDynArray(LChildNode, LField.FieldType, AsElement);
+          LField.SetValue(aObj.AsObject,LValue);
         end;
 
       tkRecord:
         begin
-          NodeName := aField.Name;
-          NodeType := TNodeType.ntElement;
+          LNodeName := LField.Name;
+          LNodeType := TNodeType.ntElement;
 
-          TbsAttributeUtils.GetXmlAttributeAttribute(aContext,aField,NodeName,NamespaceURI);
-          TbsAttributeUtils.GetXmlElementAttribute(aContext,aField,NodeName,Form,NamespaceURI);
+          TbsAttributeUtils.GetXmlAttributeAttribute(FContext, LField,LNodeName, LNamespaceURI);
+          TbsAttributeUtils.GetXmlElementAttribute(FContext, LField, LNodeName, LSchemaForm, LNamespaceURI);
 
           // Type Casting
           //TValue.Make(nil, aField.FieldType.Handle,aValue);
-          aValue:=aField.GetValue(aObj.AsObject);
-          aRecord:=aField.FieldType.AsRecord;
+          LValue := LField.GetValue(aObj.AsObject);
+          LRecord:= LField.FieldType.AsRecord;
 
-          if (NodeType = ntElement) then
+          if (LNodeType = ntElement) then
           begin
-            aNode := FindElementNode(pNode,NodeName);
-            if   NodeIsNil( aNode) then aValue:=nil
+            LChildNode := FindElementNode(pNode,LNodeName);
+            if NodeIsNil(LChildNode)
+            then
+              LValue:=nil
             else
-            TrySetUnderlyingValue(aValue, StringToNative(aRecord.GetField('fValue').FieldType,aNode.NodeValue));
-            aField.SetValue(aObj.AsObject,aValue);
+              TrySetUnderlyingValue(LValue, StringToValue(LRecord.GetField('fValue').FieldType, LChildNode.NodeValue));
+            LField.SetValue(aObj.AsObject,LValue);
           end
-          else if NodeType = ntAttribute then
+          else if LNodeType = ntAttribute then
           begin
-            aNode := pNode.AttributeNodes.FindNode(NodeName);
-            TrySetUnderlyingValue(aValue, StringToNative(aRecord.GetField('fValue').FieldType,aNode.NodeValue));
+            LChildNode:= pNode.AttributeNodes.FindNode(LNodeName);
+            TrySetUnderlyingValue(LValue, StringToValue(LRecord.GetField('fValue').FieldType,LChildNode.NodeValue));
           end;
 
         end;

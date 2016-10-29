@@ -287,7 +287,7 @@ begin
   then
     begin
       LEnvelop.DeclareNamespace('ns', FService.NamespaceURI);
-      LConverter.targetNamespace:=FService.NamespaceURI;
+      LConverter.Namespace:=FService.NamespaceURI;
     end;
 
    LHeader :=LEnvelop.AddChild(SSoapHeader);
