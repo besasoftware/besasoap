@@ -328,6 +328,7 @@ var
   AsElement     : Boolean;
   LNodeValue    : string;
   LNSPrefix     : string;
+  LAttrUseType  : TXmlAttributeAttributeUseType;
 
   function ReadNullableRecord(anObj: TValue): TValue;
   begin
@@ -449,7 +450,7 @@ begin
           LNamespaceURI:= LChildNode.NamespaceURI;
           LNodeType    := TNodeType.ntElement; // Default
 
-          if TbsAttributeUtils.GetXmlAttributeAttribute(FContext, LField, LNodeName, LNamespaceURI)
+          if TbsAttributeUtils.GetXmlAttributeAttribute(FContext, LField, LNodeName, LNamespaceURI,LAttrUseType)
           then
             LNodeType := ntAttribute;
 
@@ -469,11 +470,15 @@ begin
           end
           else if LNodeType = ntAttribute then
           begin
-            if LNamespaceURI<>FNamespace
+            if ((LAttrUseType=autOptional) and  (LNodeValue<>'')) or (LAttrUseType=autRequired)
             then
-              LChildNode.SetAttributeNS(LNodeName, LNamespaceURI, LNodeValue)
-            else
-              LChildNode.Attributes[LNodeName]:= LNodeValue;
+              begin
+                if LNamespaceURI<>FNamespace
+                then
+                  LChildNode.SetAttributeNS(LNodeName, LNamespaceURI, LNodeValue)
+                else
+                  LChildNode.Attributes[LNodeName]:= LNodeValue;
+              end;
           end
           else if LNodeType = ntText then
           begin
@@ -534,7 +539,7 @@ begin
           LNodeName := LField.Name;
           LNodeType := TNodeType.ntElement; // Default
 
-          TbsAttributeUtils.GetXmlAttributeAttribute(FContext, LField, LNodeName, LNamespaceURI);
+          TbsAttributeUtils.GetXmlAttributeAttribute(FContext, LField, LNodeName, LNamespaceURI, LAttrUseType);
           TbsAttributeUtils.GetXMLElementAttribute(FContext, LField, LNodeName, LSchemaForm, LNamespaceURI);
           TbsAttributeUtils.GetXMLFormAttribute(FContext, LField, LSchemaForm);
           //Nullable type...
@@ -671,6 +676,7 @@ var
   LValue        : TValue;
   AsElement     : Boolean;
   LSchemaForm   : TSchemaForm;
+  LAttrUseType  : TXmlAttributeAttributeUseType;
 
   function XML2ObjNative(NativeNode:IXMLNode; NativeType:TRttiType; NativeNodeName:String): TValue;
   var
@@ -682,7 +688,7 @@ var
     // Default
     NativeNodeType := TNodeType.ntElement;
 
-    TbsAttributeUtils.GetXmlAttributeAttribute(FContext,NativeType,NativeNodeName,NativeNS);
+    TbsAttributeUtils.GetXmlAttributeAttribute(FContext,NativeType,NativeNodeName,NativeNS,LAttrUseType);
     TbsAttributeUtils.GetXMLElementAttribute(FContext,NativeType,NativeNodeName,LSchemaForm,NativeNS);
     TbsAttributeUtils.GetXMLFormAttribute(FContext,NativeType,LSchemaForm);
     if TbsAttributeUtils.HasAttribute(FContext,NativeType,XmlTextAttribute) then
@@ -828,7 +834,7 @@ begin
           LNodeName := ANodeName;
           LNodeType := TNodeType.ntElement;
 
-          TbsAttributeUtils.GetXmlAttributeAttribute(FContext, LType, LNodeName, LNamespaceURI);
+          TbsAttributeUtils.GetXmlAttributeAttribute(FContext, LType, LNodeName, LNamespaceURI,LAttrUseType);
           TbsAttributeUtils.GetXmlElementAttribute(FContext, LType, LNodeName, LSchemaForm, LNamespaceURI);
 
           LValue := AObj;
@@ -892,7 +898,7 @@ begin
           LNamespaceURI:= '';
           LNodeType    := TNodeType.ntElement;
 
-          if TbsAttributeUtils.GetXmlAttributeAttribute(FContext,LField,LNodeName,LNamespaceURI)
+          if TbsAttributeUtils.GetXmlAttributeAttribute(FContext,LField,LNodeName,LNamespaceURI,LAttrUseType)
           then
             LNodeType := ntAttribute;
 
@@ -983,7 +989,7 @@ begin
           LNodeName := LField.Name;
           LNodeType := TNodeType.ntElement;
 
-          TbsAttributeUtils.GetXmlAttributeAttribute(FContext, LField,LNodeName, LNamespaceURI);
+          TbsAttributeUtils.GetXmlAttributeAttribute(FContext, LField,LNodeName, LNamespaceURI, LAttrUseType);
           TbsAttributeUtils.GetXmlElementAttribute(FContext, LField, LNodeName, LSchemaForm, LNamespaceURI);
 
           // Type Casting
