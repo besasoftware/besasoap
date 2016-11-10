@@ -55,10 +55,10 @@ type
    Time_:TTime;
    TDateTime_:TDateTime;
    //
-   NlbString:NullableString;
-   NullString:NullableString;
-   NlbInteger:NullableInteger;
-   NullInteger:NullableInteger;
+   NlbString:Nullable<String>;
+   NullString:Nullable<String>;
+   NlbInteger:Nullable<Integer>;
+   NullInteger:Nullable<Integer>;
    //
    [XmlArrayAttribute('ArrayString')]
    ArrayString_: array of string;
