@@ -119,6 +119,9 @@ type
   /// </summary>
   XmlHolderAttribute = class(TCustomXmlAttribute)
   end;
+
+  TXmlAttributeAttributeUseType=(autOptional, autRequired, autProhibited);
+
   /// <summary>
   ///   Specifies that the serializer must serialize the class member as an XML
   ///   attribute.
@@ -127,9 +130,10 @@ type
   private
     FAttributeName: string;
     FNamespace: string;
+    FUse : TXmlAttributeAttributeUseType;
   public
-    constructor Create(const Name: string=''; const Namespace: string='');
-
+    constructor Create(const AName: string=''; const ANamespace: string='';
+      const AUse: TXmlAttributeAttributeUseType=autOptional);
     /// <summary>
     ///   Gets or sets the name of the XML attribute.
     /// </summary>
@@ -138,6 +142,10 @@ type
     ///   Gets or sets the XML namespace of the XML attribute.
     /// </summary>
     property Namespace: string read FNamespace write FNamespace;
+    /// <summary>
+    ///   Gets or sets the use type of the XML attribute.
+    /// </summary>
+    property Use : TXmlAttributeAttributeUseType read FUse write FUse;
   end;
 
   /// <summary>
@@ -255,7 +263,7 @@ type
      class function GetXMLNamespaceAttribute(aContext : TRttiContext; aType : TRttiObject;var Prefix: String; var NamespaceURI: string; var Form: TSchemaForm):Boolean;
      class function GetXMLArrayAttribute(aContext : TRttiContext; aType : TRttiObject;var NodeName: String):Boolean;
      class function GetXMLArrayItemAttribute(aContext : TRttiContext; aType : TRttiObject;var NodeName: String):Boolean;
-     class function GetXmlAttributeAttribute(aContext : TRttiContext; aType : TRttiObject;var AttributeName:String; var NamespaceURI:String):Boolean;
+     class function GetXmlAttributeAttribute(aContext : TRttiContext; aType : TRttiObject;var AttributeName:String; var NamespaceURI:String; var AUseType:TXmlAttributeAttributeUseType):Boolean;
 
 
      class function GetAttribute(aType : pTypeinfo;aClass : TCustomAttributeClass) :  TCustomAttribute; overload;
@@ -279,18 +287,19 @@ begin
 end;
 
 { XmlAttributeAttribute }
-constructor XmlAttributeAttribute.Create(const Name: string;
-  const Namespace: string);
+constructor XmlAttributeAttribute.Create(const AName: string;
+  const ANamespace: string; const AUse: TXmlAttributeAttributeUseType);
 begin
-  FAttributeName:= Name;
-  FNamespace := Namespace;
+  FAttributeName:= AName;
+  FNamespace    := ANamespace;
+  FUse          := AUse;
 end;
 
 { XmlRootAttribute }
 constructor XmlRootAttribute.create(const name: string;Namespace: string='');
 begin
   FElementName := name;
-  FNamespace:= Namespace;
+  FNamespace   := Namespace;
 end;
 { XmlArrayAttribute }
 
@@ -488,7 +497,7 @@ end;
 
 class function TbsAttributeUtils.GetXmlAttributeAttribute(
   aContext: TRttiContext; aType: TRttiObject; var AttributeName: String;
-  var NamespaceURI: String):Boolean;
+  var NamespaceURI: String; var AUseType:TXmlAttributeAttributeUseType):Boolean;
 var
   aAttribute : TCustomAttribute;
 begin
@@ -501,6 +510,8 @@ begin
 
     if Length(XmlAttributeAttribute(aAttribute).Namespace) > 0 then
       NamespaceURI := XmlAttributeAttribute(aAttribute).Namespace;
+
+    AUseType:=XmlAttributeAttribute(aAttribute).Use;
   end;
 end;
 
