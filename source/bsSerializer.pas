@@ -347,6 +347,7 @@ begin
 
   TbsAttributeUtils.GetXMLElementAttribute(FContext, LType, LNodeName, LSchemaForm, LNamespaceURI);
   TbsAttributeUtils.GetXMLFormAttribute(FContext, LType, LSchemaForm);
+  TbsAttributeUtils.GetXMLTypeAttribute(FContext, LType, LNodeName, LNamespaceURI);
 
   if (AObj.IsObject)
   then

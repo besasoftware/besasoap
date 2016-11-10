@@ -120,6 +120,21 @@ type
   XmlHolderAttribute = class(TCustomXmlAttribute)
   end;
 
+  /// <summary>
+  ///   Instructs the Serialize method of the Serializer not to serialize
+  ///   the public field or public read/write property value.
+  /// </summary>
+  /// <exclude />
+  XmlTypeAttribute = class(TCustomXmlAttribute)
+  private
+    FTypeName: String;
+    FNameSpace: String;
+  public
+    constructor Create(const ATypeName: string='';const ANamespace: string='');
+    property TypeName: String read FTypeName write FTypeName;
+    property Namespace: String read FNameSpace write FNameSpace;
+  end;
+
   TXmlAttributeAttributeUseType=(autOptional, autRequired, autProhibited);
 
   /// <summary>
@@ -257,6 +272,7 @@ type
      class function HasAttributes(aType : pTypeinfo;aClass : TCustomAttributeClass;var Attrs : TArray<TCustomAttribute>) : Boolean; overload;
      class function HasAttributes(aContext : TRttiContext; aType : TRttiObject;aClass : TCustomAttributeClass;var Attrs : TArray<TCustomAttribute>) : Boolean; overload;
 
+     class function GetXMLTypeAttribute(aContext : TRttiContext; aType : TRttiObject;var ATypeName:String; var ANamespaceURI:String):Boolean;
      class function GetXMLRootAttribute(aContext : TRttiContext; aType : TRttiObject;var NodeName:String; var NamespaceURI:String):Boolean;
      class function GetXMLElementAttribute(aContext : TRttiContext; aType : TRttiObject;var NodeName:String; var Form :TSchemaForm; var NamespaceURI:String):Boolean;
      class function GetXMLFormAttribute(aContext : TRttiContext; aType : TRttiObject;var Form :TSchemaForm):Boolean;
@@ -587,6 +603,24 @@ begin
   end;
 end;
 
+class function TbsAttributeUtils.GetXMLTypeAttribute(aContext: TRttiContext;
+  aType: TRttiObject; var ATypeName, ANamespaceURI: String): Boolean;
+var
+  aAttribute : TCustomAttribute;
+begin
+  Result:=False;
+  if TbsAttributeUtils.HasAttribute(aContext,aType,XmlTypeAttribute,aAttribute) then
+  begin
+    Result:=True;
+    if Length(XmlTypeAttribute(aAttribute).TypeName) > 0 then
+      ATypeName := XmlTypeAttribute(aAttribute).TypeName;
+
+    if Length(XmlTypeAttribute(aAttribute).Namespace) > 0 then
+      ANamespaceURI:=XmlTypeAttribute(aAttribute).Namespace;
+
+  end;
+end;
+
 class function TbsAttributeUtils.HasAttributes(aType: pTypeinfo;
   aClass: TCustomAttributeClass; var Attrs: TArray<TCustomAttribute>): Boolean;
 var
@@ -613,6 +647,14 @@ end;
 constructor XmlNullableAttribute.Create(const Nullable: Boolean=False);
 begin
   FNullable:=Nullable;
+end;
+
+{ XmlTypeAttribute }
+
+constructor XmlTypeAttribute.Create(const ATypeName: string;const ANamespace: string);
+begin
+  FTypeName:=ATypeName;
+  FNameSpace:=ANamespace;
 end;
 
 end.
