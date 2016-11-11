@@ -254,6 +254,7 @@ begin
     LNodeName:='';
     LType:=FContext.GetType(AObj.TypeInfo);
     TbsAttributeUtils.GetXMLRootAttribute(FContext,LType, LNodeName, ns);
+    TbsAttributeUtils.GetXMLTypeAttribute(FContext, LType, LNodeName, ns);
     if (FNamespace='') then FNamespace:=ns;
     SerializeWithNode(LNodeName, AObj, LXmlDoc.GetDocumentNode);
     LXmlDoc.SaveToStream(AStream);
@@ -347,7 +348,7 @@ begin
 
   TbsAttributeUtils.GetXMLElementAttribute(FContext, LType, LNodeName, LSchemaForm, LNamespaceURI);
   TbsAttributeUtils.GetXMLFormAttribute(FContext, LType, LSchemaForm);
-  TbsAttributeUtils.GetXMLTypeAttribute(FContext, LType, LNodeName, LNamespaceURI);
+  //TbsAttributeUtils.GetXMLTypeAttribute(FContext, LType, LNodeName, LNamespaceURI);
 
   if (AObj.IsObject)
   then
