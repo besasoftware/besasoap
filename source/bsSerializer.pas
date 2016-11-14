@@ -330,6 +330,8 @@ var
   LNodeValue    : string;
   LNSPrefix     : string;
   LAttrUseType  : TXmlAttributeAttributeUseType;
+  LIsNullable   : Boolean;
+  LIsRequired   : Boolean;
 
   function ReadNullableRecord(anObj: TValue): TValue;
   begin
@@ -341,12 +343,15 @@ begin
   LNodeName    := LType.Name;
   LSchemaForm  := FElementForm;//sfUnqualified;
   LNamespaceURI:= FNamespace;
+  LIsNullable  := False;
+  LIsRequired  := False;
 
   if Length(ANodeName) > 0
   then
     LNodeName := ANodeName;
 
-  TbsAttributeUtils.GetXMLElementAttribute(FContext, LType, LNodeName, LSchemaForm, LNamespaceURI);
+  TbsAttributeUtils.GetXMLElementAttribute(FContext, LType, LNodeName, LSchemaForm,
+    LNamespaceURI, LIsNullable);
   TbsAttributeUtils.GetXMLFormAttribute(FContext, LType, LSchemaForm);
   //TbsAttributeUtils.GetXMLTypeAttribute(FContext, LType, LNodeName, LNamespaceURI);
 
@@ -356,8 +361,11 @@ begin
       if (AObj.AsObject = NIL)
       then
         begin
-          LChildNode:= AddChild(AParentNode, LNodeName, LSchemaForm);
-          SetNodeNil(LChildNode);
+          if LIsNullable then
+            begin
+              LChildNode:= AddChild(AParentNode, LNodeName, LSchemaForm);
+              SetNodeNil(LChildNode);
+            end;
           Exit;
         end;
     end;
@@ -456,7 +464,8 @@ begin
           then
             LNodeType := ntAttribute;
 
-          TbsAttributeUtils.GetXMLElementAttribute(FContext, LField, LNodeName, LSchemaForm, LNamespaceURI);
+          TbsAttributeUtils.GetXMLElementAttribute(FContext, LField, LNodeName,
+              LSchemaForm, LNamespaceURI, LIsNullable);
           TbsAttributeUtils.GetXMLFormAttribute(FContext, LField, LSchemaForm);
 
           if TbsAttributeUtils.HasAttribute(FContext, LField, XmlTextAttribute)
@@ -493,10 +502,15 @@ begin
            if LField.FieldType.IsInstance then
            begin
              LNodeName:= LField.Name;
+  //           TbsAttributeUtils.GetXMLElementAttribute(FContext, LType, LNodeName, LSchemaForm,
+  //             LNamespaceURI, LIsNullable);
 
              if (LField.GetValue(aObj.AsObject).AsObject = NIL)
              then
-                SetNodeNil( AddChild(LChildNode, LNodeName, LSchemaForm) )
+               begin
+                  if LIsNullable
+                    then SetNodeNil( AddChild(LChildNode, LNodeName, LSchemaForm) ) ;
+               end
              else
                 SerializeWithNode(LNodeName, LField.GetValue(AObj.AsObject).AsObject, LChildNode);
            end;
@@ -511,7 +525,8 @@ begin
           LNodeName := LField.Name;
           AsElement := False;
 
-          if TbsAttributeUtils.GetXMLElementAttribute(FContext, LField, LNodeName, LSchemaForm, LNamespaceURI)
+          if TbsAttributeUtils.GetXMLElementAttribute(FContext, LField, LNodeName,
+            LSchemaForm, LNamespaceURI, LIsNullable)
           then
             AsElement := True;
 
@@ -542,7 +557,8 @@ begin
           LNodeType := TNodeType.ntElement; // Default
 
           TbsAttributeUtils.GetXmlAttributeAttribute(FContext, LField, LNodeName, LNamespaceURI, LAttrUseType);
-          TbsAttributeUtils.GetXMLElementAttribute(FContext, LField, LNodeName, LSchemaForm, LNamespaceURI);
+          TbsAttributeUtils.GetXMLElementAttribute(FContext, LField, LNodeName,
+            LSchemaForm, LNamespaceURI, LIsNullable);
           TbsAttributeUtils.GetXMLFormAttribute(FContext, LField, LSchemaForm);
           //Nullable type...
           if AnsiStartsText('Nullable<',LField.GetValue(aObj.AsObject).TypeInfo^.Name)
@@ -679,6 +695,7 @@ var
   AsElement     : Boolean;
   LSchemaForm   : TSchemaForm;
   LAttrUseType  : TXmlAttributeAttributeUseType;
+  LIsNullable   : Boolean;
 
   function XML2ObjNative(NativeNode:IXMLNode; NativeType:TRttiType; NativeNodeName:String): TValue;
   var
@@ -691,7 +708,8 @@ var
     NativeNodeType := TNodeType.ntElement;
 
     TbsAttributeUtils.GetXmlAttributeAttribute(FContext,NativeType,NativeNodeName,NativeNS,LAttrUseType);
-    TbsAttributeUtils.GetXMLElementAttribute(FContext,NativeType,NativeNodeName,LSchemaForm,NativeNS);
+    TbsAttributeUtils.GetXMLElementAttribute(FContext, NativeType, NativeNodeName,
+      LSchemaForm, NativeNS, LIsNullable);
     TbsAttributeUtils.GetXMLFormAttribute(FContext,NativeType,LSchemaForm);
     if TbsAttributeUtils.HasAttribute(FContext,NativeType,XmlTextAttribute) then
       LNodeType := ntText;
@@ -813,7 +831,8 @@ begin
         begin
           AsElement:=False;
 
-          if TbsAttributeUtils.GetXMLElementAttribute(FContext, LType, LNodeName, LSchemaForm, LNamespaceURI)
+          if TbsAttributeUtils.GetXMLElementAttribute(FContext, LType, LNodeName,
+            LSchemaForm, LNamespaceURI, LIsNullable)
           then
             AsElement := True;
           TbsAttributeUtils.GetXMLFormAttribute(FContext,LType,LSchemaForm);
@@ -837,7 +856,8 @@ begin
           LNodeType := TNodeType.ntElement;
 
           TbsAttributeUtils.GetXmlAttributeAttribute(FContext, LType, LNodeName, LNamespaceURI,LAttrUseType);
-          TbsAttributeUtils.GetXmlElementAttribute(FContext, LType, LNodeName, LSchemaForm, LNamespaceURI);
+          TbsAttributeUtils.GetXmlElementAttribute(FContext, LType, LNodeName,
+            LSchemaForm, LNamespaceURI, LIsNullable);
 
           LValue := AObj;
           LRecord:= LType.AsRecord;
@@ -904,7 +924,8 @@ begin
           then
             LNodeType := ntAttribute;
 
-          if TbsAttributeUtils.GetXmlElementAttribute(FContext, LField, LNodeName, LSchemaForm, LNamespaceURI)
+          if TbsAttributeUtils.GetXmlElementAttribute(FContext, LField, LNodeName,
+            LSchemaForm, LNamespaceURI, LIsNullable)
           then
             LNodeType := ntElement;
 
@@ -945,7 +966,8 @@ begin
         begin
           LNodeName := LField.Name;
 
-          TbsAttributeUtils.GetXMLElementAttribute(FContext,LField,LNodeName,LSchemaForm,LNamespaceURI);
+          TbsAttributeUtils.GetXMLElementAttribute(FContext, LField, LNodeName,
+            LSchemaForm, LNamespaceURI, LIsNullable);
 
           LChildNode := FindElementNode(pNode,LNodeName);
           if LChildNode=nil then
@@ -968,7 +990,8 @@ begin
           LNodeName := LField.Name;
           AsElement := False;
 
-          if TbsAttributeUtils.GetXMLElementAttribute(FContext,LField,LNodeName,LSchemaForm,LNamespaceURI) then
+          if TbsAttributeUtils.GetXMLElementAttribute(FContext, LField, LNodeName,
+            LSchemaForm, LNamespaceURI, LIsNullable) then
               AsElement := True;
 
           TbsAttributeUtils.GetXMLFormAttribute(FContext,LField,LSchemaForm);
@@ -992,7 +1015,8 @@ begin
           LNodeType := TNodeType.ntElement;
 
           TbsAttributeUtils.GetXmlAttributeAttribute(FContext, LField,LNodeName, LNamespaceURI, LAttrUseType);
-          TbsAttributeUtils.GetXmlElementAttribute(FContext, LField, LNodeName, LSchemaForm, LNamespaceURI);
+          TbsAttributeUtils.GetXmlElementAttribute(FContext, LField, LNodeName,
+            LSchemaForm, LNamespaceURI, LIsNullable);
 
           // Type Casting
           //TValue.Make(nil, aField.FieldType.Handle,aValue);

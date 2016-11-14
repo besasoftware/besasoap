@@ -274,7 +274,9 @@ type
 
      class function GetXMLTypeAttribute(aContext : TRttiContext; aType : TRttiObject;var ATypeName:String; var ANamespaceURI:String):Boolean;
      class function GetXMLRootAttribute(aContext : TRttiContext; aType : TRttiObject;var NodeName:String; var NamespaceURI:String):Boolean;
-     class function GetXMLElementAttribute(aContext : TRttiContext; aType : TRttiObject;var NodeName:String; var Form :TSchemaForm; var NamespaceURI:String):Boolean;
+     class function GetXMLElementAttribute(aContext : TRttiContext; aType : TRttiObject;
+        var NodeName:String; var Form :TSchemaForm; var NamespaceURI:String;
+        var ANullable:Boolean):Boolean;
      class function GetXMLFormAttribute(aContext : TRttiContext; aType : TRttiObject;var Form :TSchemaForm):Boolean;
      class function GetXMLNamespaceAttribute(aContext : TRttiContext; aType : TRttiObject;var Prefix: String; var NamespaceURI: string; var Form: TSchemaForm):Boolean;
      class function GetXMLArrayAttribute(aContext : TRttiContext; aType : TRttiObject;var NodeName: String):Boolean;
@@ -533,7 +535,7 @@ end;
 
 class function TbsAttributeUtils.GetXMLElementAttribute(aContext: TRttiContext;
   aType: TRttiObject; var NodeName: String; var Form: TSchemaForm;
-  var NamespaceURI: String):Boolean;
+  var NamespaceURI: String; var ANullable:Boolean):Boolean;
 var
   aAttribute : TCustomAttribute;
 begin
@@ -548,6 +550,8 @@ begin
 
     if Length(XmlElementAttribute(aAttribute).Namespace) > 0 then
       NamespaceURI:=XmlElementAttribute(aAttribute).Namespace;
+
+    ANullable:=XmlElementAttribute(aAttribute).IsNullable;
   end;
 end;
 
